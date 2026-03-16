@@ -1,0 +1,8 @@
+{
+  "appId": "com.gentry.bladesedge",
+  "appName": "Blades Edge",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
