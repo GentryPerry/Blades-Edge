@@ -29,5 +29,8 @@ export default defineConfig({
         ]
       }
     })
-  ]
+  ],
+  server: {
+    allowedHosts: ['blades.gentryperry.com']
+  }
 })

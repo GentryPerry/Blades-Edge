@@ -7,12 +7,13 @@ import {
 import { DB } from "./database";
 import { callGemini } from "./gemini";
 import CharacterManager from "./CharacterManager";
+import CrewManager from "./CrewManager";
 import PocketBase from 'pocketbase';
 import AuthScreen from './AuthScreen';
 import { ALL_SOURCES, srcLabel, accentColor } from "./gamedata.jsx";
 import DiceRoller from "./diceroller.jsx";
 
-const pb = new PocketBase('https://GentryPerry.myasustor.com:8091');
+const pb = new PocketBase('https://apiblades.gentryperry.com');
 
 // --- CUSTOM ANIMATION STYLES ---
 const STYLES = `
@@ -65,7 +66,6 @@ const DEFAULT_NAV = [
     { id:"Vice",           label:"Vice",         icon:"Star", hidden: false },
     { id:"Trauma",         label:"Trauma",       icon:"Zap", hidden: false },
   ]},
-  // REMOVED ROSTER HERE
   { id: "cat-crew", role:"crew", label:"Crew", category:"Crew", hidden: false, tabs:[
     { id:"Cohorts",   label:"Cohorts",   icon:"Users", hidden: false },
     { id:"Stats",     label:"Stats",     icon:"Target", hidden: false },
@@ -109,9 +109,8 @@ const ClockSVG = ({ segments, filled, className = "w-24 h-24" }) => {
       `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
       "Z"
     ].join(" ");
-    const isFilled = i < filled;
     paths.push(
-      <path key={i} d={pathData} fill={isFilled ? fillColor : "transparent"} stroke="#27272a" strokeWidth="2" />
+      <path key={i} d={pathData} fill={i < filled ? fillColor : "transparent"} stroke="#27272a" strokeWidth="2" />
     );
   }
   return (
@@ -255,11 +254,9 @@ const GeneratorsView = () => {
     setLoading(true);
     setActiveType(type);
     setResult("");
-
-    let promptContext = setting === "BitD Core" 
+    let promptContext = setting === "BitD Core"
       ? "Original Blades in the Dark (Doskvol, Victorian industrial, ghosts, lightning barriers)."
       : "Blades '68 (Retro-futuristic 1960s spy-fi/cyberpunk, plasmovision, secret agents, 'The Bubble').";
-
     let specificRequest = "";
     if (type === "NPC") {
       specificRequest = "Create a unique NPC. Provide their Name/Alias, a detailed physical description, a strange quirk, and their secret motive within 3 sentences and some bullet points of additional flavor.";
@@ -270,16 +267,11 @@ const GeneratorsView = () => {
     } else if (type === "Codename") {
       specificRequest = "Generate exactly 10 gritty, thematic agent codenames (e.g., 'Iron Ghost', 'Copper Raven'). Format as a clean numbered list.";
     }
-
     const finalPrompt = `[SYSTEM: ${promptContext}]\n[TASK: ${specificRequest}]\n[CONSTRAINT: Do not repeat the prompt. Begin immediately with the content. Use Markdown bolding for headers.]`;
-
     const res = await callGemini(finalPrompt);
-    
-    // Formatting logic
     const formattedRes = res
       .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
-      .replace(/\n/g, '<br />'); 
-
+      .replace(/\n/g, '<br />');
     setResult(formattedRes);
     setLoading(false);
   };
@@ -287,20 +279,15 @@ const GeneratorsView = () => {
   return (
     <div className="animate-fade-in flex flex-col items-center justify-center max-w-2xl mx-auto py-6 space-y-6">
       <div className="flex bg-[#09090b] rounded-xl p-1.5 border border-neutral-800 shadow-inner">
-        <button 
-          onClick={() => setSetting("BitD Core")} 
-          className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all duration-200 ${setting === "BitD Core" ? "bg-neutral-800 text-white shadow-sm" : "text-neutral-500 hover:text-neutral-300"}`}
-        >
+        <button onClick={() => setSetting("BitD Core")}
+          className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all duration-200 ${setting === "BitD Core" ? "bg-neutral-800 text-white shadow-sm" : "text-neutral-500 hover:text-neutral-300"}`}>
           Blades Core
         </button>
-        <button 
-          onClick={() => setSetting("B68")} 
-          className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all duration-200 ${setting === "B68" ? "bg-blue-900/60 text-blue-200 shadow-sm" : "text-neutral-500 hover:text-neutral-300"}`}
-        >
+        <button onClick={() => setSetting("B68")}
+          className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all duration-200 ${setting === "B68" ? "bg-blue-900/60 text-blue-200 shadow-sm" : "text-neutral-500 hover:text-neutral-300"}`}>
           Blades '68
         </button>
       </div>
-
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
         <button onClick={() => generate("NPC")} disabled={loading} className={`p-4 rounded-xl border border-neutral-800 shadow-sm flex flex-col items-center gap-2 transition-all active:scale-95 ${activeType === "NPC" ? "bg-neutral-800" : "bg-[#111113] hover:bg-neutral-800/80"}`}>
           <User size={20} className="text-amber-400" />
@@ -319,22 +306,18 @@ const GeneratorsView = () => {
           <span className="font-bold text-sm text-neutral-200">Codenames</span>
         </button>
       </div>
-
       {(result || loading) && (
         <div className="bg-[#111113] border border-neutral-800 rounded-xl p-8 shadow-sm w-full min-h-[200px] flex flex-col animate-slide-up relative overflow-hidden">
           {setting === "B68" && <div className="absolute top-0 left-0 w-full h-1 bg-blue-600/50" />}
           {setting === "BitD Core" && <div className="absolute top-0 left-0 w-full h-1 bg-neutral-600/50" />}
-          
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full flex-1 text-neutral-500 gap-3">
               <div className="w-6 h-6 border-2 border-neutral-600 border-t-neutral-200 rounded-full animate-spin" />
               <p className="text-sm italic">Consulting the Void Sea...</p>
             </div>
           ) : (
-            <div 
-              className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap markdown-content hide-scroll overflow-y-auto" 
-              dangerouslySetInnerHTML={{ __html: result }} 
-            />
+            <div className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap markdown-content hide-scroll overflow-y-auto"
+              dangerouslySetInnerHTML={{ __html: result }} />
           )}
         </div>
       )}
@@ -434,48 +417,42 @@ const ClocksView = ({ clocks, setClocks }) => {
   );
 };
 
-
 // ==========================================
 // MAIN APP COMPONENT
 // ==========================================
 export default function App() {
-  
+
   // --- GATEKEEPER LOGIC ---
   const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid);
-
   useEffect(() => {
-    pb.authStore.onChange(() => {
+    // pb.authStore.onChange returns an unsubscribe fn — return it so React
+    // cleans it up on unmount and prevents listener accumulation on hot-reload.
+    return pb.authStore.onChange(() => {
       setIsAuthenticated(pb.authStore.isValid);
     });
   }, []);
 
-  const handleLogout = () => {
-    pb.authStore.clear(); // This erases the login token
-  };
+  const handleLogout = () => { pb.authStore.clear(); };
 
-  const [sidebar, setSidebar]             = useState(false);
-  const [settingsOpen, setSettings]       = useState(false);
-  
-  // Navigation Customizer State
-  const [isNavEditing, setIsNavEditing]   = useState(false);
-  const [dragContext, setDragContext]     = useState(null);
+  const [sidebar, setSidebar]           = useState(false);
+  const [settingsOpen, setSettings]     = useState(false);
+  const [isNavEditing, setIsNavEditing] = useState(false);
+  const [dragContext, setDragContext]   = useState(null);
 
-  // Nav State Initialization (Safely handling corrupted old state)
   const [navConfig, setNavConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('customNav');
       if (!saved) return DEFAULT_NAV;
       const parsed = JSON.parse(saved);
-      // Nuke cache if it contains React component objects instead of string names
       if (parsed[0] && parsed[0].tabs[0] && typeof parsed[0].tabs[0].icon === 'object') {
-          localStorage.removeItem('customNav');
-          return DEFAULT_NAV;
+        localStorage.removeItem('customNav');
+        return DEFAULT_NAV;
       }
       return parsed;
     } catch { return DEFAULT_NAV; }
   });
 
-  const [exp, setExp]                     = useState({ player:true, dice:true, roster:true, crew:false, storyteller:true, world:false });
+  const [exp, setExp]                     = useState({ player:true, dice:true, roster:true, crews:true, crew:false, storyteller:true, world:false });
   const [role, setRole]                   = useState("roster");
   const [tab, setTab]                     = useState("Characters");
   const [showFavorites, setShowFavorites] = useState(false);
@@ -498,12 +475,10 @@ export default function App() {
     } catch { return []; }
   });
 
-  // Sync to memory
   useEffect(() => { localStorage.setItem('characters', JSON.stringify(characters)); }, [characters]);
   useEffect(() => { localStorage.setItem('favorites', JSON.stringify(favorites)); }, [favorites]);
   useEffect(() => { localStorage.setItem('customNav', JSON.stringify(navConfig)); }, [navConfig]);
 
-  // Nav Customizer Handlers
   const toggleCatVisibility = (cIdx) => {
     const newNav = [...navConfig];
     newNav[cIdx].hidden = !newNav[cIdx].hidden;
@@ -528,15 +503,11 @@ export default function App() {
   const handleDrop = (e, targetCatIndex, targetTabIndex = null) => {
     e.preventDefault();
     if (!dragContext) return;
-
     const newNav = [...navConfig];
-
     if (dragContext.type === 'category' && targetTabIndex === null) {
-      // Moving a full category up or down
       const [movedCat] = newNav.splice(dragContext.catIndex, 1);
       newNav.splice(targetCatIndex, 0, movedCat);
     } else if (dragContext.type === 'tab' && targetTabIndex !== null && dragContext.catIndex === targetCatIndex) {
-      // Moving a tab within the same category
       const cat = { ...newNav[targetCatIndex] };
       const newTabs = [...cat.tabs];
       const [movedTab] = newTabs.splice(dragContext.tabIndex, 1);
@@ -549,7 +520,12 @@ export default function App() {
   };
 
   const section = navConfig.find(n => n.role === role);
-  const qTrim = q.trim();
+  const qTrim   = q.trim();
+
+  // Helpers to detect which full-screen views are active (hide search bar for these)
+  const isCharacterScreen = tab === "Characters" && role === "roster";
+  const isCrewsScreen     = tab === "Crews"      && role === "crews";
+  const hideSearchBar     = isCharacterScreen || isCrewsScreen;
 
   const toggleFavorite = (id) => {
     setFavorites(prev => prev.includes(id) ? prev.filter(favId => favId !== id) : [...prev, id]);
@@ -562,8 +538,8 @@ export default function App() {
       return ["title","content","tags","subcategory","preview","sub","sub-subcategory"].some(k => r[k]?.toLowerCase().includes(lq));
     }
     if (showFavorites) return false;
-    if (tab === "Clocks" || tab === "Generators ✨" || tab === "Characters" || tab === "Dice Roller") return false;
-    const dbSub = r.subcategory?.toLowerCase();
+    if (tab === "Clocks" || tab === "Generators ✨" || tab === "Characters" || tab === "Dice Roller" || tab === "Crews") return false;
+    const dbSub      = r.subcategory?.toLowerCase();
     const tabCompare = tab?.toLowerCase();
     if (tabCompare === 'pos & effect' && dbSub === 'pos & effect') {
       return r.category?.toLowerCase() === section?.category?.toLowerCase();
@@ -574,46 +550,56 @@ export default function App() {
 
   const go = (r, t, isFav = false) => { setRole(r); setTab(t); setShowFavorites(isFav); setSidebar(false); setQ(""); };
   const hdr = qTrim ? "Search Results" : showFavorites ? "Favorites" : tab;
-  
-  // If they aren't logged in, STOP loading the app and show the Auth Screen instead
+
   if (!isAuthenticated) {
-    return <AuthScreen onLogin={() => setIsAuthenticated(true)} />;  
+    return <AuthScreen pb={pb} onLogin={() => setIsAuthenticated(true)} />;
   }
-  // -------------------------
 
   return (
     <div className="flex w-full h-screen overflow-hidden font-sans" style={{ background:"#09090b", color:"#e5e5e5" }}>
       <style>{STYLES}</style>
-      {sidebar && <div className="fixed inset-0 z-40 animate-fade-in" style={{ background:"rgba(0,0,0,0.6)", backdropFilter:"blur(3px)" }} onClick={() => setSidebar(false)}/>}
-      <aside className={`fixed top-0 left-0 h-full z-50 flex flex-col border-r border-neutral-800 shadow-2xl transition-transform duration-300 ${sidebar?"translate-x-0":"-translate-x-full"}`}
+
+      {/* Sidebar backdrop */}
+      {sidebar && (
+        <div className="fixed inset-0 z-40 animate-fade-in"
+          style={{ background:"rgba(0,0,0,0.6)", backdropFilter:"blur(3px)" }}
+          onClick={() => setSidebar(false)} />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`fixed top-0 left-0 h-full z-50 flex flex-col border-r border-neutral-800 shadow-2xl transition-transform duration-300 ${sidebar ? "translate-x-0" : "-translate-x-full"}`}
         style={{ width:260, background:"#111113" }}>
         <div className="px-6 py-5 border-b border-neutral-800 shrink-0" style={{ background:"rgba(0,0,0,0.3)" }}>
           <p className="font-black uppercase tracking-widest text-neutral-200" style={{ fontSize:12 }}>Blade's Edge</p>
           <p className="text-neutral-500 mt-1 tracking-wide" style={{ fontSize:10 }}>Blades in the Dark Compendium</p>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-3 space-y-1 hide-scroll">
-
           {!isNavEditing ? (
-            // --- NORMAL VIEW ---
             <>
-              {/* Favorites - Always pinned to top */}
-              <button type="button" onClick={() => go("player","",true)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${showFavorites?"bg-neutral-800 font-bold":"text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/60"}`}
-              style={showFavorites?{color:"#fcd34d"}:{}}>
-              <Star size={14} style={showFavorites?{color:"#fbbf24"}:{}}/> Favorites
+              {/* Favorites */}
+              <button type="button" onClick={() => go("player", "", true)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${showFavorites ? "bg-neutral-800 font-bold" : "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/60"}`}
+                style={showFavorites ? { color:"#fcd34d" } : {}}>
+                <Star size={14} style={showFavorites ? { color:"#fbbf24" } : {}}/> Favorites
               </button>
 
-              {/* NEW: Characters Top-Level Button */}
+              {/* Characters */}
               <button type="button" onClick={() => go("roster", "Characters")}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${tab==="Characters"&&role==="roster"&&!showFavorites?"bg-neutral-800 text-white font-semibold shadow-sm":"text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/60"}`}>
-                <Users size={14} style={{ opacity: tab==="Characters"&&role==="roster"&&!showFavorites ? 1 : 0.6 }}/> Characters
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${isCharacterScreen && !showFavorites ? "bg-neutral-800 text-white font-semibold shadow-sm" : "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/60"}`}>
+                <Users size={14} style={{ opacity: isCharacterScreen && !showFavorites ? 1 : 0.6 }}/> Characters
               </button>
 
-              {/* Dice Roller - Always pinned to top */}
+              {/* Crews */}
+              <button type="button" onClick={() => go("crews", "Crews")}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${isCrewsScreen && !showFavorites ? "bg-neutral-800 text-white font-semibold shadow-sm" : "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/60"}`}>
+                <Shield size={14} style={{ opacity: isCrewsScreen && !showFavorites ? 1 : 0.6 }}/> Crews
+              </button>
+
+              {/* Dice Roller */}
               <button type="button" onClick={() => go("dice", "Dice Roller")}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${tab==="Dice Roller"&&role==="dice"&&!showFavorites?"bg-neutral-800 text-white font-semibold":"text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/60"}`}>
-                <Dices size={14} style={{ opacity: tab==="Dice Roller"&&role==="dice"&&!showFavorites ? 1 : 0.6 }}/> Dice Roller
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${tab === "Dice Roller" && role === "dice" && !showFavorites ? "bg-neutral-800 text-white font-semibold" : "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/60"}`}>
+                <Dices size={14} style={{ opacity: tab === "Dice Roller" && role === "dice" && !showFavorites ? 1 : 0.6 }}/> Dice Roller
               </button>
 
               <div className="border-t border-neutral-800/50 my-2"/>
@@ -622,20 +608,19 @@ export default function App() {
               {navConfig.filter(s => !s.hidden).map(s => {
                 const visibleTabs = s.tabs.filter(t => !t.hidden);
                 if (visibleTabs.length === 0) return null;
-
                 return (
                   <div key={s.role} className="mb-1">
                     <button type="button" onClick={() => setExp(p => ({ ...p, [s.role]:!p[s.role] }))}
                       className="w-full flex items-center justify-between px-3 py-2.5 font-bold uppercase tracking-widest text-neutral-600 hover:text-neutral-300 transition-colors"
                       style={{ fontSize:11 }}>
-                      {s.label} {exp[s.role]?<ChevronDown size={14}/>:<ChevronRight size={14}/>}
+                      {s.label} {exp[s.role] ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
                     </button>
                     {exp[s.role] && (
                       <div className="pl-3 space-y-1 mb-2 animate-fade-in">
                         {visibleTabs.map(t => (
                           <button key={t.id} type="button" onClick={() => go(s.role, t.id)}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm rounded-lg transition-colors ${tab===t.id&&role===s.role&&!showFavorites?"bg-neutral-800 text-white font-semibold shadow-sm":"text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50"}`}>
-                            <span style={{ opacity: tab===t.id&&role===s.role&&!showFavorites ? 1 : 0.6 }}>
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm rounded-lg transition-colors ${tab === t.id && role === s.role && !showFavorites ? "bg-neutral-800 text-white font-semibold shadow-sm" : "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50"}`}>
+                            <span style={{ opacity: tab === t.id && role === s.role && !showFavorites ? 1 : 0.6 }}>
                               {ICON_MAP[t.icon] || <BookOpen size={12}/>}
                             </span>
                             {t.label}
@@ -648,18 +633,14 @@ export default function App() {
               })}
             </>
           ) : (
-            // --- EDIT MODE VIEW ---
             <div className="space-y-3 animate-fade-in pb-4">
               <p className="text-[10px] uppercase font-bold text-neutral-500 px-2 tracking-widest mb-2">Drag to reorder. Toggle to hide.</p>
               {navConfig.map((cat, cIdx) => (
-                <div
-                  key={cat.id}
-                  draggable
+                <div key={cat.id} draggable
                   onDragStart={(e) => handleDragStart(e, 'category', cIdx)}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => handleDrop(e, cIdx)}
-                  className={`border border-neutral-800 rounded-lg p-2 bg-[#1a1a1c] transition-opacity duration-300 ${cat.hidden ? 'opacity-40' : 'opacity-100'}`}
-                >
+                  className={`border border-neutral-800 rounded-lg p-2 bg-[#1a1a1c] transition-opacity duration-300 ${cat.hidden ? 'opacity-40' : 'opacity-100'}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <GripVertical size={14} className="text-neutral-500 cursor-grab active:cursor-grabbing" />
@@ -669,24 +650,20 @@ export default function App() {
                       {cat.hidden ? <PlusCircle size={14} className="text-neutral-500 hover:text-green-400"/> : <MinusCircle size={14} className="text-neutral-500 hover:text-red-400"/>}
                     </button>
                   </div>
-                  
                   <div className="space-y-1 pl-4 border-l border-neutral-800/50 ml-1">
-                    {cat.tabs.map((tab, tIdx) => (
-                      <div
-                        key={tab.id}
-                        draggable
+                    {cat.tabs.map((t, tIdx) => (
+                      <div key={t.id} draggable
                         onDragStart={(e) => handleDragStart(e, 'tab', cIdx, tIdx)}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={(e) => handleDrop(e, cIdx, tIdx)}
-                        className={`flex items-center justify-between p-1.5 rounded bg-[#0f0f11] border border-neutral-800/50 transition-opacity duration-300 ${tab.hidden || cat.hidden ? 'opacity-40' : 'opacity-100'}`}
-                      >
-                         <div className="flex items-center gap-2">
-                           <GripVertical size={12} className="text-neutral-600 cursor-grab active:cursor-grabbing" />
-                           <span className="text-xs text-neutral-400">{tab.label}</span>
-                         </div>
-                         <button onClick={() => toggleTabVisibility(cIdx, tIdx)} disabled={cat.hidden} className="p-1 rounded hover:bg-neutral-800 transition-colors disabled:cursor-not-allowed">
-                           {tab.hidden ? <PlusCircle size={12} className="text-neutral-600 hover:text-green-500"/> : <MinusCircle size={12} className="text-neutral-600 hover:text-red-500"/>}
-                         </button>
+                        className={`flex items-center justify-between p-1.5 rounded bg-[#0f0f11] border border-neutral-800/50 transition-opacity duration-300 ${t.hidden || cat.hidden ? 'opacity-40' : 'opacity-100'}`}>
+                        <div className="flex items-center gap-2">
+                          <GripVertical size={12} className="text-neutral-600 cursor-grab active:cursor-grabbing" />
+                          <span className="text-xs text-neutral-400">{t.label}</span>
+                        </div>
+                        <button onClick={() => toggleTabVisibility(cIdx, tIdx)} disabled={cat.hidden} className="p-1 rounded hover:bg-neutral-800 transition-colors disabled:cursor-not-allowed">
+                          {t.hidden ? <PlusCircle size={12} className="text-neutral-600 hover:text-green-500"/> : <MinusCircle size={12} className="text-neutral-600 hover:text-red-500"/>}
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -695,16 +672,13 @@ export default function App() {
             </div>
           )}
         </div>
-        
+
         <div className="shrink-0 border-t border-neutral-800 p-3 bg-black/20 space-y-2">
-          <button 
-            onClick={() => setIsNavEditing(!isNavEditing)}
-            className={`w-full flex items-center justify-center gap-2.5 px-3 py-2.5 text-xs font-bold uppercase tracking-widest rounded-lg transition-colors ${isNavEditing ? "bg-blue-600/20 text-blue-400 border border-blue-900" : "text-neutral-500 border border-neutral-800 hover:text-neutral-300 hover:bg-neutral-800/60"}`}
-          >
+          <button onClick={() => setIsNavEditing(!isNavEditing)}
+            className={`w-full flex items-center justify-center gap-2.5 px-3 py-2.5 text-xs font-bold uppercase tracking-widest rounded-lg transition-colors ${isNavEditing ? "bg-blue-600/20 text-blue-400 border border-blue-900" : "text-neutral-500 border border-neutral-800 hover:text-neutral-300 hover:bg-neutral-800/60"}`}>
             {isNavEditing ? <CheckIcon size={14}/> : <Layout size={14}/>}
             {isNavEditing ? "Apply Layout" : "Customize Nav"}
           </button>
-          
           {!isNavEditing && (
             <button type="button" onClick={() => { setSettings(true); setSidebar(false); }}
               className="w-full flex items-center justify-center gap-2.5 px-3 py-2 text-xs rounded-lg text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/60 transition-colors">
@@ -714,60 +688,89 @@ export default function App() {
         </div>
       </aside>
 
+      {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0 h-screen relative">
-        <header className="shrink-0 flex items-center gap-3 px-5 border-b border-neutral-800 shadow-sm z-10" style={{ height:60, background:"rgba(12,12,14,0.95)" }}>
-          <button type="button" onClick={() => setSidebar(true)} aria-label="Open menu" className="text-neutral-400 hover:text-white p-1.5 rounded-md hover:bg-neutral-800 transition-colors"><Menu size={20}/></button>
+        <header className="shrink-0 flex items-center gap-3 px-5 border-b border-neutral-800 shadow-sm z-10"
+          style={{ height:60, background:"rgba(12,12,14,0.95)" }}>
+          <button type="button" onClick={() => setSidebar(true)} aria-label="Open menu"
+            className="text-neutral-400 hover:text-white p-1.5 rounded-md hover:bg-neutral-800 transition-colors">
+            <Menu size={20}/>
+          </button>
           <span className="font-black uppercase tracking-widest text-neutral-200 truncate flex-1" style={{ fontSize:13 }}>{hdr}</span>
-          
-          {/* LOGOUT BUTTON ADDED HERE */}
           <button onClick={handleLogout} className="text-xs font-bold text-neutral-500 hover:text-red-500 transition-colors shrink-0">
             Logout
           </button>
         </header>
 
-        {/* Hide the top search bar entirely when CharacterManager is showing (roster or sheet) */}
-        {!(tab === "Characters" && role === "roster") && (
-        <div className="shrink-0 px-5 pt-4 pb-3 space-y-3 shadow-sm z-10 relative" style={{ background:"#09090b" }}>
-          <div className="relative">
-            <Search size={14} className="absolute left-3.5 top-3 text-neutral-500"/>
-            <input placeholder="Search rules, tags, factions..." value={q} onChange={e => setQ(e.target.value)}
-              className="w-full border border-neutral-800 rounded-xl pl-10 pr-10 py-2.5 text-sm text-neutral-200 focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 outline-none transition-all shadow-sm"
-              style={{ background:"#111113" }}/>
-            {qTrim && <button type="button" onClick={() => setQ("")} aria-label="Clear search" className="absolute right-3.5 top-3 text-neutral-500 hover:text-neutral-300 transition-colors"><X size={14}/></button>}
-          </div>
-          {!qTrim && !showFavorites && section && section.tabs && section.tabs.filter(t => !t.hidden).length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 hide-scroll">
-              {section.tabs.filter(t => !t.hidden).map(t => (
-                <button key={t.id} type="button" onClick={() => setTab(t.id)}
-                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold uppercase tracking-wide transition-all ${tab===t.id?"bg-neutral-700 text-white shadow-sm":"border border-neutral-800 text-neutral-500 hover:text-neutral-300 hover:border-neutral-600"}`}
-                  style={{ fontSize:10, background:tab!==t.id?"#111113":undefined }}>
-                  {ICON_MAP[t.icon] || <BookOpen size={10}/>} {t.label}
+        {/* Search bar — hidden on Characters and Crews screens */}
+        {!hideSearchBar && (
+          <div className="shrink-0 px-5 pt-4 pb-3 space-y-3 shadow-sm z-10 relative" style={{ background:"#09090b" }}>
+            <div className="relative">
+              <Search size={14} className="absolute left-3.5 top-3 text-neutral-500"/>
+              <input placeholder="Search rules, tags, factions..." value={q} onChange={e => setQ(e.target.value)}
+                className="w-full border border-neutral-800 rounded-xl pl-10 pr-10 py-2.5 text-sm text-neutral-200 focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 outline-none transition-all shadow-sm"
+                style={{ background:"#111113" }}/>
+              {qTrim && (
+                <button type="button" onClick={() => setQ("")} aria-label="Clear search"
+                  className="absolute right-3.5 top-3 text-neutral-500 hover:text-neutral-300 transition-colors">
+                  <X size={14}/>
                 </button>
-              ))}
+              )}
             </div>
-          )}
-        </div>
+            {!qTrim && !showFavorites && section && section.tabs && section.tabs.filter(t => !t.hidden).length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 hide-scroll">
+                {section.tabs.filter(t => !t.hidden).map(t => (
+                  <button key={t.id} type="button" onClick={() => setTab(t.id)}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold uppercase tracking-wide transition-all ${tab === t.id ? "bg-neutral-700 text-white shadow-sm" : "border border-neutral-800 text-neutral-500 hover:text-neutral-300 hover:border-neutral-600"}`}
+                    style={{ fontSize:10, background:tab !== t.id ? "#111113" : undefined }}>
+                    {ICON_MAP[t.icon] || <BookOpen size={10}/>} {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
+        {/* Content area */}
         <div className="flex-1 overflow-y-auto px-5 pb-8 pt-2 hide-scroll">
+
+          {/* Characters */}
           {!qTrim && !showFavorites && tab === "Characters" && role === "roster" && (
-            <CharacterManager 
-              characters={characters} 
-              setCharacters={setCharacters} 
-              setModal={setModal} 
+            <CharacterManager
+              characters={characters}
+              setCharacters={setCharacters}
+              setModal={setModal}
               userId={pb.authStore.record?.id || pb.authStore.model?.id}
-              pbInstance={pb} 
+              pbInstance={pb}
             />
           )}
+
+          {/* Crews */}
+          {!qTrim && !showFavorites && tab === "Crews" && role === "crews" && (
+            <CrewManager
+              characters={characters}
+              setCharacters={setCharacters}
+              pbInstance={pb}
+              userId={pb.authStore.record?.id || pb.authStore.model?.id}
+            />
+          )}
+
+          {/* Clocks */}
           {!qTrim && !showFavorites && tab === "Clocks" && role === "storyteller" && (
             <ClocksView clocks={clocks} setClocks={setClocks} />
           )}
+
+          {/* Generators */}
           {!qTrim && !showFavorites && tab === "Generators ✨" && role === "storyteller" && (
             <GeneratorsView />
           )}
+
+          {/* Dice Roller */}
           {!qTrim && !showFavorites && tab === "Dice Roller" && role === "dice" && (
             <DiceRoller />
           )}
+
+          {/* Favorites */}
           {!qTrim && showFavorites && (
             favorites.length > 0 ? (
               <div className="grid gap-3" style={{ gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))" }}>
@@ -783,10 +786,20 @@ export default function App() {
               </div>
             )
           )}
-          {(qTrim || (!showFavorites && !(tab === "Clocks" && role === "storyteller") && !(tab === "Generators ✨" && role === "storyteller") && !(tab === "Characters" && role === "roster") && !(tab === "Dice Roller" && role === "dice"))) && (
+
+          {/* Compendium rules / search results */}
+          {(qTrim || (!showFavorites
+            && !(tab === "Characters" && role === "roster")
+            && !(tab === "Crews"      && role === "crews")
+            && !(tab === "Clocks"     && role === "storyteller")
+            && !(tab === "Generators ✨" && role === "storyteller")
+            && !(tab === "Dice Roller"   && role === "dice")
+          )) && (
             rules.length > 0 ? (
               <div className="grid gap-3" style={{ gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))" }}>
-                {rules.map((r, idx) => <RuleTile key={r.id} index={idx} rule={r} onClick={setModal} isFavorite={favorites.includes(r.id)} />)}
+                {rules.map((r, idx) => (
+                  <RuleTile key={r.id} index={idx} rule={r} onClick={setModal} isFavorite={favorites.includes(r.id)} />
+                ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-24 text-neutral-600 animate-fade-in">

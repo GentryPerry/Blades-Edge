@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import PocketBase from 'pocketbase';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Shield, FileText, ChevronRight, ChevronDown, ChevronLeft,
+  Shield, FileText, ChevronRight, ChevronDown, ChevronLeft, Target,
   CheckCircle, Lock, Edit3, X, Zap, Crown, Users, TrendingUp,
   Settings, ArrowLeft, PlusCircle, Trash2, DollarSign, Minus, Plus,
-  Dices, AlertTriangle, Star, Flame, Car, Eye, BookOpen
+  Dices, AlertTriangle, Star, Flame, Car, Eye, BookOpen,
+  Share2, Copy, UserPlus, UserCheck, UserX, Clock
 } from 'lucide-react';
 
 // ─── CREW ICON MAP ────────────────────────────────────────────────────────────
@@ -343,7 +345,14 @@ const SECONDARY_OUTCOMES = [
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-const defaultCrew = (name, templateId, characterId) => {
+const generateInviteCode = () => {
+  const words = ['VIPER','WOLF','CROW','IRON','GHOST','RAVEN','BLADE','SHADOW','STORM','NEON'];
+  const word = words[Math.floor(Math.random() * words.length)];
+  const num  = Math.floor(Math.random() * 900 + 100);
+  return `${word}-${num}`;
+};
+
+const defaultCrew = (name, templateId, characterId, ownerId) => {
   const t = CREW_TEMPLATES[templateId];
   const claimsState = {};
   t.claims.forEach(c => { claimsState[c.id] = { status: c.defaultState === 'owned' ? 'owned' : 'locked', notes: '' }; });
@@ -356,10 +365,63 @@ const defaultCrew = (name, templateId, characterId) => {
     wardBoss: { name: '', notes: '', tier: 1, anger: 0 },
     utopianCircle: 'First Circle',
     utopianVision: '',
+    inviteCode: generateInviteCode(),
+    ownerId: ownerId || '',
+    memberId: [],
   };
 };
 
 // ─── MINI COMPONENTS ─────────────────────────────────────────────────────────
+
+const CREW_STYLES = `
+@keyframes daggerSpin {
+  0%   { transform: rotate(0deg)   scale(1);    filter: drop-shadow(0 0 6px rgba(239,68,68,0.0)); }
+  25%  { transform: rotate(90deg)  scale(1.08); filter: drop-shadow(0 0 10px rgba(239,68,68,0.5)); }
+  50%  { transform: rotate(180deg) scale(1);    filter: drop-shadow(0 0 6px rgba(239,68,68,0.0)); }
+  75%  { transform: rotate(270deg) scale(1.08); filter: drop-shadow(0 0 10px rgba(239,68,68,0.5)); }
+  100% { transform: rotate(360deg) scale(1);    filter: drop-shadow(0 0 6px rgba(239,68,68,0.0)); }
+}
+@keyframes daggerPulse {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(1.3); }
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.dagger-spin { animation: daggerSpin 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.dagger-glow { animation: daggerPulse 1.4s ease-in-out infinite; }
+.animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+`;
+
+const LoadingDagger = ({ message = "Loading...", error = null, onRetry = null }) => (
+  <div className="flex flex-col items-center justify-center py-32 animate-fade-in select-none" style={{ minHeight: 320 }}>
+    <style>{CREW_STYLES}</style>
+    <div className="relative flex items-center justify-center mb-6" style={{ width: 96, height: 96 }}>
+      <div className="dagger-glow absolute rounded-full"
+        style={{ width: 80, height: 80, background: 'radial-gradient(circle, rgba(239,68,68,0.4) 0%, transparent 70%)' }} />
+      {error ? (
+        <span className="text-5xl">⚠️</span>
+      ) : (
+        <img
+          src="/blades-icon.png"
+          alt="Loading"
+          className="dagger-spin relative z-10"
+          style={{ width: 56, height: 56, objectFit: 'contain' }}
+        />
+      )}
+    </div>
+    <p className="text-xs font-black uppercase tracking-widest text-neutral-500 mb-1">
+      {error ? 'Connection Failed' : message}
+    </p>
+    {error && (
+      <p className="text-[11px] text-neutral-600 mb-4 text-center max-w-xs">{error}</p>
+    )}
+    {error && onRetry && (
+      <button onClick={onRetry}
+        className="mt-2 px-4 py-2 text-xs font-bold uppercase tracking-widest border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500 rounded-lg transition-colors">
+        Try Again
+      </button>
+    )}
+  </div>
+);
 
 const Tracker = ({ value, max, onChange, color = 'bg-red-600 border-red-600' }) => (
   <div className="flex gap-1 items-center flex-wrap">
@@ -813,12 +875,300 @@ function ActiveBenefitsChips({ claimBenefits, upgradeBenefits, upgradeDescs = {}
 
 // ─── CREW DASHBOARD ───────────────────────────────────────────────────────────
 
-function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar }) {
-  const [contentTab, setContentTab]           = useState('abilities');
-  const [selectedNodeId, setSelectedNodeId]   = useState(null);
-  const [showWardBoss, setShowWardBoss]         = useState(false);
-  const [activeAbility, setActiveAbility]       = useState(null);
-  const [activeUpgrade, setActiveUpgrade]       = useState(null);
+// ─── SHARE CREW MODAL ─────────────────────────────────────────────────────────
+
+function ShareCrewModal({ crew, onClose }) {
+  const [copied, setCopied] = useState(false);
+  const code = crew.inviteCode || '—';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div className="bg-[#111113] border border-neutral-700 rounded-2xl w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Share2 size={15} className="text-neutral-400" />
+            <h3 className="font-black uppercase tracking-widest text-neutral-100 text-sm">Invite to Crew</h3>
+          </div>
+          <button onClick={onClose} className="text-neutral-500 hover:text-white"><X size={18} /></button>
+        </div>
+        <div className="p-5 flex flex-col gap-4">
+          <p className="text-sm text-neutral-400 leading-relaxed">
+            Share this code with players you want to invite. They can enter it from the Crews screen to request to join.
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 bg-[#09090b] border border-neutral-700 rounded-xl px-4 py-3 text-center">
+              <span className="font-black text-2xl tracking-widest text-white">{code}</span>
+            </div>
+            <button onClick={handleCopy}
+              className="flex flex-col items-center gap-1 p-3 border border-neutral-700 rounded-xl hover:border-neutral-500 transition-colors min-w-[56px]"
+              style={copied ? { borderColor: '#22c55e', background: '#052e16' } : {}}>
+              <Copy size={16} className={copied ? 'text-green-400' : 'text-neutral-400'} />
+              <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: copied ? '#4ade80' : '#737373' }}>
+                {copied ? 'Copied!' : 'Copy'}
+              </span>
+            </button>
+          </div>
+          <div className="bg-[#09090b] border border-neutral-800 rounded-xl p-3 text-xs text-neutral-500 leading-relaxed">
+            Once a player requests to join, you'll see their request in this crew's Members section and can approve or deny it.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── JOIN CREW MODAL ──────────────────────────────────────────────────────────
+
+function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
+  const [code, setCode]       = useState('');
+  const [status, setStatus]   = useState('idle'); // idle | searching | found | sending | error
+  const [foundCrew, setFoundCrew] = useState(null);
+  const [selectedCharId, setSelectedCharId] = useState(characters[0]?.id || '');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const searchCode = async () => {
+    if (!code.trim()) return;
+    setStatus('searching');
+    setFoundCrew(null);
+    setErrorMsg('');
+    try {
+      const results = await pb.collection('crews').getList(1, 1, {
+        filter: `inviteCode = "${code.trim().toUpperCase()}"`,
+        '$autoCancel': false,
+      });
+      if (results.items.length === 0) {
+        setErrorMsg('No crew found with that code.');
+        setStatus('error');
+      } else {
+        const crew = results.items[0];
+        crew.templateId  = crew.templateID  || crew.templateId;
+        crew.characterId = crew.characterID || crew.characterId;
+        // Check if user is already a member
+        const memberList = crew.memberId || [];
+        if (memberList.includes(userId) || crew.ownerId === userId) {
+          setErrorMsg("You're already a member of this crew.");
+          setStatus('error');
+        } else {
+          setFoundCrew(crew);
+          setStatus('found');
+        }
+      }
+    } catch (err) {
+      setErrorMsg('Something went wrong. Try again.');
+      setStatus('error');
+    }
+  };
+
+  const sendRequest = async () => {
+    if (!foundCrew || !selectedCharId) return;
+    setStatus('sending');
+    const char = characters.find(c => c.id === selectedCharId);
+    try {
+      await pb.collection('crewRequests').create({
+        crewId:        foundCrew.id,
+        requesterId:   userId,
+        requesterName: char?.name || 'Unknown',
+        status:        'pending',
+      }, { '$autoCancel': false });
+      setStatus('sent');
+    } catch (err) {
+      setErrorMsg('Failed to send request. Try again.');
+      setStatus('error');
+    }
+  };
+
+  const tmpl = foundCrew ? CREW_TEMPLATES[foundCrew.templateId] : null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div className="bg-[#111113] border border-neutral-700 rounded-2xl w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <UserPlus size={15} className="text-neutral-400" />
+            <h3 className="font-black uppercase tracking-widest text-neutral-100 text-sm">Join a Crew</h3>
+          </div>
+          <button onClick={onClose} className="text-neutral-500 hover:text-white"><X size={18} /></button>
+        </div>
+
+        {status === 'sent' ? (
+          <div className="p-6 flex flex-col items-center gap-3 text-center">
+            <UserCheck size={32} className="text-green-400" />
+            <p className="font-black uppercase tracking-widest text-white">Request Sent!</p>
+            <p className="text-sm text-neutral-400">The crew owner will review your request. You'll be able to access the crew once approved.</p>
+            <button onClick={onClose} className="mt-2 px-6 py-2.5 bg-neutral-200 text-black font-black uppercase tracking-widest text-xs rounded-xl hover:bg-white transition-colors">Done</button>
+          </div>
+        ) : (
+          <div className="p-5 flex flex-col gap-4">
+            <div className="flex gap-2">
+              <input
+                value={code}
+                onChange={e => setCode(e.target.value.toUpperCase())}
+                onKeyDown={e => e.key === 'Enter' && searchCode()}
+                placeholder="CREW CODE"
+                className="flex-1 border border-neutral-700 rounded-xl px-4 py-3 font-black text-lg tracking-widest text-center outline-none"
+                style={{ background: '#09090b', color: '#e5e5e5', colorScheme: 'dark', letterSpacing: '0.15em' }}
+              />
+              <button onClick={searchCode} disabled={status === 'searching'}
+                className="px-4 py-3 bg-neutral-200 text-black font-black uppercase tracking-widest text-xs rounded-xl hover:bg-white transition-colors disabled:opacity-50">
+                {status === 'searching' ? '...' : 'Find'}
+              </button>
+            </div>
+
+            {status === 'error' && (
+              <p className="text-sm text-red-400 text-center">{errorMsg}</p>
+            )}
+
+            {status === 'found' && foundCrew && tmpl && (
+              <div className="flex flex-col gap-3 animate-fade-in">
+                <div className="bg-[#09090b] border rounded-xl p-4" style={{ borderColor: tmpl.color + '60' }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <CrewIcon id={tmpl.icon} size={16} color={tmpl.color} />
+                    <span className="font-black text-sm uppercase tracking-widest text-white">{foundCrew.name}</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: tmpl.color }}>{tmpl.name}</span>
+                </div>
+
+                {characters.length > 1 && (
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-1.5">Join as</label>
+                    <select value={selectedCharId} onChange={e => setSelectedCharId(e.target.value)}
+                      className="w-full border border-neutral-700 rounded-xl px-3 py-2.5 text-sm outline-none"
+                      style={{ background: '#09090b', color: '#e5e5e5', colorScheme: 'dark' }}>
+                      {characters.map(c => <option key={c.id} value={c.id}>{c.name} · {c.playbook}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                <button onClick={sendRequest} disabled={status === 'sending'}
+                  className="w-full py-3 bg-neutral-200 text-black font-black uppercase tracking-widest text-sm rounded-xl hover:bg-white transition-colors disabled:opacity-50">
+                  {status === 'sending' ? 'Sending...' : 'Request to Join'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── MEMBERS PANEL (inside crew dashboard, owner only) ────────────────────────
+
+function MembersPanel({ crew, pb, userId, onUpdate }) {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const isOwner = crew.ownerId === userId;
+
+  useEffect(() => {
+    if (!isOwner) { setLoading(false); return; }
+    pb.collection('crewRequests').getFullList({
+      filter: `crewId = "${crew.id}" && status = "pending"`,
+      '$autoCancel': false,
+    }).then(r => { setRequests(r); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [crew.id]);
+
+  const handleApprove = async (req) => {
+    try {
+      await pb.collection('crewRequests').update(req.id, { status: 'approved' }, { '$autoCancel': false });
+      const newMemberList = [...(crew.memberId || []), req.requesterId];
+      onUpdate({ memberId: newMemberList });
+      setRequests(prev => prev.filter(r => r.id !== req.id));
+    } catch (err) { console.error('Approve failed:', err); }
+  };
+
+  const handleDeny = async (req) => {
+    try {
+      await pb.collection('crewRequests').update(req.id, { status: 'denied' }, { '$autoCancel': false });
+      setRequests(prev => prev.filter(r => r.id !== req.id));
+    } catch (err) { console.error('Deny failed:', err); }
+  };
+
+  const handleKick = async (memberId) => {
+    if (!confirm('Remove this member from the crew?')) return;
+    const newMemberList = (crew.memberId || []).filter(id => id !== memberId);
+    onUpdate({ memberId: newMemberList });
+  };
+
+  const memberList = crew.memberId || [];
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Pending requests — owner only */}
+      {isOwner && !loading && requests.length > 0 && (
+        <div className="bg-[#111113] border border-amber-900/40 rounded-2xl p-4">
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-3 flex items-center gap-1.5">
+            <Clock size={11} /> Pending Requests ({requests.length})
+          </h4>
+          <div className="space-y-2">
+            {requests.map(req => (
+              <div key={req.id} className="flex items-center justify-between gap-3 bg-[#09090b] border border-neutral-800 rounded-xl px-3 py-2.5">
+                <span className="text-sm font-bold text-neutral-200">{req.requesterName}</span>
+                <div className="flex gap-1.5">
+                  <button onClick={() => handleApprove(req)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-green-950/40 border border-green-900/60 text-green-400 hover:bg-green-950/60 transition-colors">
+                    <UserCheck size={11} /> Approve
+                  </button>
+                  <button onClick={() => handleDeny(req)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-red-950/40 border border-red-900/60 text-red-400 hover:bg-red-950/60 transition-colors">
+                    <UserX size={11} /> Deny
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Members list */}
+      <div className="bg-[#111113] border border-neutral-800 rounded-2xl p-4">
+        <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-3 flex items-center gap-1.5">
+          <Users size={11} /> Members ({memberList.length + 1})
+        </h4>
+        <div className="space-y-2">
+          {/* Owner */}
+          <div className="flex items-center justify-between bg-[#09090b] border border-neutral-800 rounded-xl px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <Crown size={12} className="text-amber-500" />
+              <span className="text-sm font-bold text-neutral-200">
+                {crew.ownerId === userId ? 'You (Owner)' : 'Crew Owner'}
+              </span>
+            </div>
+          </div>
+          {/* Other members */}
+          {memberList.map(mid => (
+            <div key={mid} className="flex items-center justify-between bg-[#09090b] border border-neutral-800 rounded-xl px-3 py-2.5">
+              <span className="text-sm text-neutral-400">{mid === userId ? 'You' : `Member`}</span>
+              {isOwner && (
+                <button onClick={() => handleKick(mid)}
+                  className="text-neutral-700 hover:text-red-500 transition-colors p-1">
+                  <UserX size={13} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb, userId }) {
+  const [contentTab, setContentTab]                   = useState('claims');
+  const [selectedNodeId, setSelectedNodeId]           = useState(null);
+  const [showWardBoss, setShowWardBoss]               = useState(false);
+  const [showShare, setShowShare]                     = useState(false);
+  const [activeAbility, setActiveAbility]             = useState(null);
+  const [activeUpgrade, setActiveUpgrade]             = useState(null);
   const [secondaryScoreCohort, setSecondaryScoreCohort] = useState(null);
 
   const template    = CREW_TEMPLATES[crew.templateId];
@@ -833,12 +1183,9 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar }) {
     const state  = crew.claimsState[claim.id] || { status: 'locked', notes: '' };
     let   status = state.status;
     if (status === 'locked') {
-      // Forward: this claim lists an owned node in its own connections
-      const forwardAdj = claim.connections?.some(id => crew.claimsState[id]?.status === 'owned');
-      // Backward: some OTHER owned claim lists this claim in its connections
+      const forwardAdj  = claim.connections?.some(id => crew.claimsState[id]?.status === 'owned');
       const backwardAdj = template.claims.some(other =>
-        crew.claimsState[other.id]?.status === 'owned' &&
-        other.connections?.includes(claim.id)
+        crew.claimsState[other.id]?.status === 'owned' && other.connections?.includes(claim.id)
       );
       if (forwardAdj || backwardAdj) status = 'available';
     }
@@ -847,7 +1194,7 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar }) {
 
   const claimBenefits   = enhancedClaims.filter(c => c.status === 'owned');
   const upgradeBenefits = (crew.upgrades || []).filter(u => !u.startsWith('Cohort:'));
-  // Build a desc lookup for upgrades
+
   const upgradeDescs = {};
   [...(template.specificUpgrades || [])].forEach(u => { upgradeDescs[u.name] = u.desc; });
   GENERAL_UPGRADES.forEach(cat => cat.items.forEach(item => {
@@ -857,15 +1204,10 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar }) {
   const updateClaimNode = (nodeId, updates) => {
     const newClaimsState = { ...crew.claimsState, [nodeId]: { ...(crew.claimsState[nodeId] || {}), ...updates } };
     const crewUpdates = { claimsState: newClaimsState };
-    // Auto-grant rep when claiming a turf node
     if (updates.status === 'owned') {
       const claimDef = template.claims.find(c => c.id === nodeId);
-      if (claimDef) {
-        const b = claimDef.benefit.toLowerCase();
-        // Turf claims grant +1 Rep on claim
-        if (nodeId.startsWith('turf') || claimDef.label.toLowerCase() === 'turf') {
-          crewUpdates.rep = Math.min(12, (crew.rep || 0) + 1);
-        }
+      if (claimDef && (nodeId.startsWith('turf') || claimDef.label.toLowerCase() === 'turf')) {
+        crewUpdates.rep = Math.min(12, (crew.rep || 0) + 1);
       }
     }
     onUpdate(crewUpdates);
@@ -899,346 +1241,440 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar }) {
   };
 
   const CONTENT_TABS = [
-    { id: 'abilities', label: 'Abilities', icon: <Shield size={13} /> },
-    { id: 'cohorts',   label: 'Cohorts',   icon: <Users size={13} /> },
-    { id: 'upgrades',  label: 'Upgrades',  icon: <TrendingUp size={13} /> },
+    { id: 'claims',    label: 'Claims',    icon: <Target size={15} /> },
+    { id: 'abilities', label: 'Abilities', icon: <Shield size={15} /> },
+    { id: 'cohorts',   label: 'Cohorts',   icon: <Users size={15} /> },
+    { id: 'upgrades',  label: 'Upgrades',  icon: <TrendingUp size={15} /> },
+    { id: 'members',   label: 'Members',   icon: <UserPlus size={15} /> },
   ];
 
-  // Utopian circle filter
   const circleOrder = ['First Circle', 'Second Circle', 'Third Circle', 'Final Circle'];
   const activeCircle = crew.utopianCircle || 'First Circle';
   const filteredAbilities = template.circles
     ? template.abilities.filter(a => circleOrder.indexOf(a.circle) <= circleOrder.indexOf(activeCircle))
     : template.abilities;
 
+  const STATS = [
+    { label: 'Tier',   key: 'tier',   max: 5  },
+    { label: 'Rep',    key: 'rep',    max: 12 },
+    { label: 'Heat',   key: 'heat',   max: 9  },
+    { label: 'Wanted', key: 'wanted', max: 4  },
+  ];
+
   return (
     <div className="flex flex-col animate-fade-in" style={{ background: '#09090b', height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
 
-      {/* Header */}
+      {/* ── HEADER ── */}
       <div className="shrink-0 bg-[#111113] border-b border-neutral-800 shadow-md" style={{ borderTopColor: accentColor, borderTopWidth: 3 }}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-2.5 flex-wrap">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-neutral-400 hover:text-white text-xs font-bold p-1.5 hover:bg-neutral-800 rounded-lg w-fit transition-colors shrink-0">
-            <ArrowLeft size={14} /> Crews
+
+        {/* Row 1: Back + crew name */}
+        <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+          <button onClick={onBack}
+            className="flex items-center gap-1.5 text-neutral-400 hover:text-white text-xs font-bold py-2 px-3 hover:bg-neutral-800 rounded-lg transition-colors shrink-0">
+            <ArrowLeft size={15} /> Crews
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <CrewIcon id={template.icon} size={20} color={accentColor} />
+              <CrewIcon id={template.icon} size={18} color={accentColor} />
               <h2 className="font-black uppercase tracking-widest text-neutral-100 truncate text-sm">{crew.name}</h2>
-              <span className="text-[10px] font-black text-neutral-600 uppercase shrink-0">{template.name}</span>
             </div>
-            {linkedChar && <p className="text-[10px] text-neutral-600 uppercase font-black">↳ {linkedChar.name} · {linkedChar.playbook}</p>}
+            <p className="text-[10px] text-neutral-600 uppercase font-black tracking-widest">
+              {template.name}{linkedChar ? ` · ${linkedChar.name}` : ''}
+            </p>
           </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Stats */}
-            {[{ label: 'Tier', key: 'tier', max: 5 }, { label: 'Rep', key: 'rep', max: 12 }, { label: 'Heat', key: 'heat', max: 9 }, { label: 'Wanted', key: 'wanted', max: 4 }].map(s => (
-              <div key={s.key} className="flex flex-col items-center bg-[#09090b] border border-neutral-800 rounded-lg px-1.5 py-1 min-w-[42px]">
-                <span className="text-[8px] font-black uppercase tracking-widest text-neutral-600">{s.label}</span>
-                <div className="flex items-center gap-0.5 mt-0.5">
-                  <button onClick={() => onUpdate({ [s.key]: Math.max(0, (crew[s.key] || 0) - 1) })} className="text-neutral-700 hover:text-white"><Minus size={9} /></button>
-                  <span className="font-black text-neutral-200 text-xs w-4 text-center">{crew[s.key] || 0}</span>
-                  <button onClick={() => onUpdate({ [s.key]: Math.min(s.max, (crew[s.key] || 0) + 1) })} className="text-neutral-700 hover:text-white"><Plus size={9} /></button>
-                </div>
-              </div>
-            ))}
-
-            {/* Stacks transfer */}
-            <div className="flex items-center gap-1 bg-[#09090b] border border-neutral-800 rounded-lg px-2 py-1">
-              <div className="flex flex-col items-center min-w-[30px]">
-                <span className="text-[8px] font-black uppercase tracking-widest text-neutral-600">{currName}</span>
-                <span className="font-black text-neutral-200 text-xs">{charCoin}</span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <button onClick={() => transferStacks('charToCrew')} disabled={charCoin < 1}
-                  className="flex items-center gap-0.5 px-1 py-0.5 bg-neutral-800 border border-neutral-700 text-neutral-400 text-[8px] uppercase font-black rounded transition-colors hover:border-neutral-500 disabled:opacity-30">
-                  In <ChevronRight size={8} />
-                </button>
-                <button onClick={() => transferStacks('crewToChar')} disabled={(crew.stacks || 0) < 1}
-                  className="flex items-center gap-0.5 px-1 py-0.5 bg-neutral-800 border border-neutral-700 text-neutral-400 text-[8px] uppercase font-black rounded transition-colors hover:border-neutral-500 disabled:opacity-30">
-                  <ChevronLeft size={8} /> Out
-                </button>
-              </div>
-              <div className="flex flex-col items-center min-w-[30px]">
-                <span className="text-[8px] font-black uppercase tracking-widest text-neutral-600">Vault</span>
-                <span className="font-black text-xs" style={{ color: accentColor }}>{crew.stacks || 0}</span>
-              </div>
-            </div>
-
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Share / Invite */}
+            <button onClick={() => setShowShare(true)}
+              className="p-3 border border-neutral-800 text-neutral-500 hover:text-white hover:border-neutral-600 rounded-xl transition-colors">
+              <Share2 size={18} />
+            </button>
             {/* Ward Boss */}
             <button onClick={() => setShowWardBoss(true)}
-              className={`p-1.5 border rounded-lg transition-colors bg-[#09090b] ${(crew.wardBoss?.anger || 0) >= 4 ? 'border-amber-700 text-amber-400 animate-pulse' : 'border-neutral-800 text-neutral-600 hover:text-amber-400 hover:border-amber-900'}`}
-              title="Ward Boss">
-              <Crown size={14} />
+              className={`p-3 border rounded-xl transition-colors ${(crew.wardBoss?.anger || 0) >= 4 ? 'border-amber-700 text-amber-400 animate-pulse bg-amber-950/20' : 'border-neutral-800 text-neutral-500 hover:text-amber-400 hover:border-amber-900'}`}>
+              <Crown size={18} />
             </button>
+          </div>
+        </div>
+
+        {/* Row 2: Stats — 4 equal large boxes */}
+        <div className="grid grid-cols-4 gap-2 px-4 pb-3">
+          {STATS.map(s => (
+            <div key={s.key} className="flex flex-col bg-[#09090b] border border-neutral-800 rounded-xl overflow-hidden">
+              {/* Label */}
+              <span className="text-[9px] font-black uppercase tracking-widest text-neutral-600 text-center pt-2 pb-1">{s.label}</span>
+              {/* Big number */}
+              <span className="font-black text-white text-2xl text-center leading-none pb-2">{crew[s.key] || 0}</span>
+              {/* +/- row — full width, clearly separated */}
+              <div className="grid grid-cols-2 border-t border-neutral-800">
+                <button
+                  onClick={() => onUpdate({ [s.key]: Math.max(0, (crew[s.key] || 0) - 1) })}
+                  className="py-2.5 flex items-center justify-center text-neutral-500 hover:text-white hover:bg-neutral-800 active:bg-neutral-700 transition-all border-r border-neutral-800">
+                  <Minus size={14} />
+                </button>
+                <button
+                  onClick={() => onUpdate({ [s.key]: Math.min(s.max, (crew[s.key] || 0) + 1) })}
+                  className="py-2.5 flex items-center justify-center text-neutral-500 hover:text-white hover:bg-neutral-800 active:bg-neutral-700 transition-all">
+                  <Plus size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Row 3: Stacks transfer — clear two-column layout */}
+        <div className="grid grid-cols-2 gap-2 px-4 pb-3">
+          {/* Character stacks */}
+          <div className="flex items-center justify-between bg-[#09090b] border border-neutral-800 rounded-xl px-3 py-2">
+            <div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-neutral-600 block">{currName}</span>
+              <span className="font-black text-white text-lg leading-none">{charCoin}</span>
+            </div>
+            <button
+              onClick={() => transferStacks('charToCrew')}
+              disabled={charCoin < 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30"
+              style={{ background: accentColor + '20', color: accentColor, border: `1px solid ${accentColor}50` }}>
+              Deposit <ChevronRight size={12} />
+            </button>
+          </div>
+          {/* Crew vault */}
+          <div className="flex items-center justify-between bg-[#09090b] border border-neutral-800 rounded-xl px-3 py-2">
+            <button
+              onClick={() => transferStacks('crewToChar')}
+              disabled={(crew.stacks || 0) < 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30 border border-neutral-700 text-neutral-400 hover:border-neutral-500">
+              <ChevronLeft size={12} /> Withdraw
+            </button>
+            <div className="text-right">
+              <span className="text-[9px] font-black uppercase tracking-widest text-neutral-600 block">Vault</span>
+              <span className="font-black text-lg leading-none" style={{ color: accentColor }}>{crew.stacks || 0}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Content tabs */}
-      <div className="shrink-0 flex items-center gap-0.5 px-4 pt-2 border-b border-neutral-800 bg-[#111113]">
+      {/* ── TAB BAR ── */}
+      <div className="shrink-0 grid bg-[#111113] border-b border-neutral-800" style={{ gridTemplateColumns: `repeat(${CONTENT_TABS.length}, 1fr)` }}>
         {CONTENT_TABS.map(t => (
           <button key={t.id} onClick={() => setContentTab(t.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-t-lg transition-all border-b-2 ${
-              contentTab === t.id ? 'text-white border-b-2' : 'text-neutral-600 border-transparent hover:text-neutral-300'}`}
-            style={contentTab === t.id ? { borderBottomColor: accentColor, color: 'white' } : {}}>
-            {t.icon} {t.label}
+            className="flex flex-col items-center gap-1 py-3 transition-all border-b-2"
+            style={{
+              borderBottomColor: contentTab === t.id ? accentColor : 'transparent',
+              color: contentTab === t.id ? 'white' : '#525252',
+            }}>
+            <span style={{ color: contentTab === t.id ? accentColor : '#525252' }}>{t.icon}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Body */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* ── CONTENT ── */}
+      <div className="flex-1 overflow-y-auto hide-scroll" style={{ background: '#09090b' }}>
 
-        {/* Left panel */}
-        <div className="w-72 shrink-0 bg-[#111113] border-r border-neutral-800 overflow-y-auto hide-scroll p-3 flex flex-col gap-2.5">
+        {/* CLAIMS TAB */}
+        {contentTab === 'claims' && (
+          <div className="flex flex-col h-full">
+            <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-neutral-800 bg-[#111113]">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: accentColor }}>
+                  Claims Network · {template.name}
+                </h3>
+                <p className="text-[10px] text-neutral-600 mt-0.5">Claim adjacent nodes. ★ = special one-off.</p>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto flex items-center justify-center p-2">
+              <ClaimsGrid
+                claims={enhancedClaims}
+                onNodeSelect={setSelectedNodeId}
+                selectedNodeId={selectedNodeId}
+                accentColor={accentColor}
+              />
+            </div>
+          </div>
+        )}
 
-          {/* ── ABILITIES TAB ── */}
-          {contentTab === 'abilities' && (
-            <>
-              {/* Utopian circle selector */}
-              {template.circles && (
-                <div className="mb-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-neutral-600 block mb-1.5">Active Circle</span>
-                  <div className="grid grid-cols-2 gap-1">
-                    {template.circles.map(circle => (
-                      <button key={circle} onClick={() => onUpdate({ utopianCircle: circle })}
-                        className={`text-[9px] font-black uppercase tracking-widest px-2 py-1.5 border rounded-lg transition-all ${activeCircle === circle ? 'text-white' : 'border-neutral-800 text-neutral-600 hover:border-neutral-600'}`}
-                        style={activeCircle === circle ? { borderColor: accentColor, background: accentColor + '20', color: accentColor } : {}}>
-                        {circle}
-                      </button>
-                    ))}
+        {/* ABILITIES TAB */}
+        {contentTab === 'abilities' && (
+          <div className="p-4 flex flex-col gap-3">
+            {/* Utopian circle selector */}
+            {template.circles && (
+              <div>
+                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-600 block mb-2">Active Circle</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {template.circles.map(circle => (
+                    <button key={circle} onClick={() => onUpdate({ utopianCircle: circle })}
+                      className="text-[10px] font-black uppercase tracking-widest px-3 py-2.5 border rounded-xl transition-all"
+                      style={activeCircle === circle
+                        ? { borderColor: accentColor, background: accentColor + '20', color: accentColor }
+                        : { borderColor: '#262626', background: '#111113', color: '#525252' }}>
+                      {circle}
+                    </button>
+                  ))}
+                </div>
+                {template.circleRequirements?.[activeCircle] && (
+                  <p className="text-[9px] text-neutral-600 mt-2 leading-snug italic px-1">{template.circleRequirements[activeCircle]}</p>
+                )}
+              </div>
+            )}
+            {template.circles && (
+              <div>
+                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-600 block mb-1.5">Utopian Vision</span>
+                <input value={crew.utopianVision || ''} onChange={e => onUpdate({ utopianVision: e.target.value })}
+                  placeholder="Free · Egalitarian · Radiant..."
+                  className="w-full border border-neutral-800 rounded-xl text-sm px-3 py-2.5 outline-none"
+                  style={{ background: '#09090b', color: '#e5e5e5', colorScheme: 'dark' }} />
+              </div>
+            )}
+
+            <CollapsibleSection title="Crew Abilities" icon={<Shield size={12} />} count={filteredAbilities.length} defaultOpen={true}>
+              <div className="space-y-1.5">
+                {filteredAbilities.map(ability => (
+                  <div key={ability.name} className="border border-neutral-800/60 rounded-xl overflow-hidden">
+                    <button onClick={() => setActiveAbility(activeAbility === ability.name ? null : ability.name)}
+                      className="px-4 py-3.5 text-left w-full hover:bg-neutral-800/20 transition-colors flex justify-between items-center gap-3">
+                      <div>
+                        {ability.circle && (
+                          <span className="block text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: accentColor + 'aa' }}>{ability.circle}</span>
+                        )}
+                        <span className="font-black text-sm uppercase tracking-wide text-neutral-200">{ability.name}</span>
+                      </div>
+                      {activeAbility === ability.name
+                        ? <ChevronDown size={14} className="text-neutral-500 shrink-0" />
+                        : <ChevronRight size={14} className="text-neutral-500 shrink-0" />}
+                    </button>
+                    {activeAbility === ability.name && (
+                      <div className="px-4 pb-4 text-sm text-neutral-400 leading-relaxed border-t border-neutral-800/40 pt-3">
+                        {ability.desc}
+                      </div>
+                    )}
                   </div>
-                  {template.circleRequirements?.[activeCircle] && (
-                    <p className="text-[9px] text-neutral-600 mt-1.5 leading-snug italic px-1">{template.circleRequirements[activeCircle]}</p>
-                  )}
-                </div>
-              )}
+                ))}
+              </div>
+            </CollapsibleSection>
 
-              {/* Utopian Vision */}
-              {template.circles && (
-                <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-neutral-600 block mb-1">Utopian Vision</span>
-                  <input value={crew.utopianVision || ''} onChange={e => onUpdate({ utopianVision: e.target.value })}
-                    placeholder="Free · Egalitarian · Radiant..."
-                    className="w-full border border-neutral-800 rounded-lg text-[11px] px-2.5 py-1.5 outline-none"
-                    style={{ background: '#09090b', color: '#d4d4d4', colorScheme: 'dark' }} />
-                </div>
-              )}
+            <ActiveBenefitsChips
+              claimBenefits={claimBenefits}
+              upgradeBenefits={upgradeBenefits}
+              upgradeDescs={upgradeDescs}
+              accentColor={accentColor}
+            />
+          </div>
+        )}
 
-              <CollapsibleSection title="Crew Abilities" icon={<Shield size={11} />} count={filteredAbilities.length} defaultOpen={true}>
-                <div className="space-y-1">
-                  {filteredAbilities.map(ability => (
-                    <div key={ability.name} className="border border-neutral-800/60 rounded-lg">
-                      <button onClick={() => setActiveAbility(activeAbility === ability.name ? null : ability.name)}
-                        className="px-2.5 py-1.5 text-left w-full hover:bg-neutral-800/20 transition-colors flex justify-between items-start gap-2">
-                        <div>
-                          {ability.circle && (
-                            <span className="block text-[8px] font-black uppercase tracking-widest mb-0.5" style={{ color: accentColor + 'aa' }}>{ability.circle}</span>
-                          )}
-                          <span className="font-bold text-[11px] uppercase tracking-wide text-neutral-300 leading-tight">{ability.name}</span>
-                        </div>
-                        {activeAbility === ability.name ? <ChevronDown size={11} className="text-neutral-600 shrink-0 mt-0.5" /> : <ChevronRight size={11} className="text-neutral-600 shrink-0 mt-0.5" />}
+        {/* COHORTS TAB */}
+        {contentTab === 'cohorts' && (
+          <div className="p-4 flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-black uppercase tracking-widest text-neutral-500 flex items-center gap-2">
+                <Users size={13} /> Cohorts
+              </h3>
+              <button onClick={addCohort}
+                className="flex items-center gap-1.5 text-xs font-black uppercase px-3 py-2 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 rounded-xl transition-colors">
+                <PlusCircle size={13} /> Add Cohort
+              </button>
+            </div>
+
+            {crew.cohorts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-neutral-600">
+                <Users size={28} className="mb-3 opacity-20" />
+                <p className="text-sm italic">No cohorts established.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {crew.cohorts.map(cohort => (
+                  <div key={cohort.id} className="bg-[#111113] border border-neutral-800 rounded-2xl p-4 space-y-3">
+                    {/* Name + delete */}
+                    <div className="flex items-center gap-3">
+                      <input value={cohort.name} onChange={e => updateCohort(cohort.id, { name: e.target.value })}
+                        className="flex-1 bg-transparent font-black text-sm uppercase tracking-wide text-neutral-200 outline-none border-b border-neutral-800 focus:border-red-800 pb-1"
+                        style={{ colorScheme: 'dark' }} />
+                      <button onClick={() => deleteCohort(cohort.id)} className="text-neutral-700 hover:text-red-500 transition-colors p-1.5">
+                        <Trash2 size={14} />
                       </button>
-                      {activeAbility === ability.name && (
-                        <div className="px-2.5 pb-2 text-[11px] text-neutral-400 leading-relaxed border-t border-neutral-800/40 pt-1.5">
-                          {ability.desc}
+                    </div>
+
+                    {/* Type + Subtype */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <select value={cohort.type} onChange={e => updateCohort(cohort.id, { type: e.target.value, subtype: '' })}
+                        className="border border-neutral-700 rounded-xl px-3 py-2.5 text-sm outline-none font-bold"
+                        style={{ background: '#1a1a1a', color: '#d4d4d4', colorScheme: 'dark' }}>
+                        {COHORT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      {cohort.type === 'Gang' ? (
+                        <select value={cohort.subtype} onChange={e => updateCohort(cohort.id, { subtype: e.target.value })}
+                          className="border border-neutral-700 rounded-xl px-3 py-2.5 text-sm outline-none"
+                          style={{ background: '#1a1a1a', color: '#a3a3a3', colorScheme: 'dark' }}>
+                          <option value="">Type...</option>
+                          {GANG_SUBTYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      ) : (
+                        <input value={cohort.subtype} onChange={e => updateCohort(cohort.id, { subtype: e.target.value })}
+                          placeholder="Specialty..."
+                          className="border border-neutral-700 rounded-xl px-3 py-2.5 text-sm outline-none"
+                          style={{ background: '#1a1a1a', color: '#a3a3a3', colorScheme: 'dark' }} />
+                      )}
+                    </div>
+
+                    {/* Status + Quality */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <select value={cohort.status} onChange={e => updateCohort(cohort.id, { status: e.target.value })}
+                        className={`border rounded-xl px-3 py-2.5 text-sm outline-none font-bold ${STATUS_COLORS[cohort.status] || ''}`}
+                        style={{ colorScheme: 'dark' }}>
+                        {COHORT_STATUSES.map(s => <option key={s} value={s} className="bg-neutral-900 text-neutral-200">{s}</option>)}
+                      </select>
+                      <div className="flex items-center justify-between bg-[#1a1a1a] border border-neutral-700 rounded-xl px-3 py-2">
+                        <span className="text-[10px] font-black text-neutral-500 uppercase">Quality</span>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => updateCohort(cohort.id, { quality: Math.max(0, (cohort.quality || 1) - 1) })}
+                            className="w-6 h-6 flex items-center justify-center rounded-lg bg-neutral-800 text-neutral-400 hover:text-white active:scale-95">
+                            <Minus size={11} />
+                          </button>
+                          <span className="font-black text-white w-5 text-center">{cohort.quality || 1}</span>
+                          <button onClick={() => updateCohort(cohort.id, { quality: Math.min(6, (cohort.quality || 1) + 1) })}
+                            className="w-6 h-6 flex items-center justify-center rounded-lg bg-neutral-800 text-neutral-400 hover:text-white active:scale-95">
+                            <Plus size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Edges + Flaws */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-[10px] uppercase font-black text-neutral-600 block mb-2">Edges</span>
+                        {COHORT_EDGES.map(e => (
+                          <label key={e} className="flex items-center gap-2 cursor-pointer mb-1.5">
+                            <div className={`w-4 h-4 rounded border flex-shrink-0 transition-colors ${cohort.edges.includes(e) ? 'bg-red-600 border-red-600' : 'border-neutral-700'}`} />
+                            <span className="text-xs text-neutral-400">{e}</span>
+                            <input type="checkbox" className="hidden" checked={cohort.edges.includes(e)}
+                              onChange={() => updateCohort(cohort.id, { edges: cohort.edges.includes(e) ? cohort.edges.filter(x => x !== e) : [...cohort.edges, e] })} />
+                          </label>
+                        ))}
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-black text-neutral-600 block mb-2">Flaws</span>
+                        {COHORT_FLAWS.map(f => (
+                          <label key={f} className="flex items-center gap-2 cursor-pointer mb-1.5">
+                            <div className={`w-4 h-4 rounded border flex-shrink-0 transition-colors ${cohort.flaws.includes(f) ? 'bg-red-600 border-red-600' : 'border-neutral-700'}`} />
+                            <span className="text-xs text-neutral-400">{f}</span>
+                            <input type="checkbox" className="hidden" checked={cohort.flaws.includes(f)}
+                              onChange={() => updateCohort(cohort.id, { flaws: cohort.flaws.includes(f) ? cohort.flaws.filter(x => x !== f) : [...cohort.flaws, f] })} />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Downtime action */}
+                    <div>
+                      <span className="text-[10px] uppercase font-black text-neutral-600 block mb-1.5">Downtime Action</span>
+                      <select value={cohort.downtimeAction || ''} onChange={e => updateCohort(cohort.id, { downtimeAction: e.target.value })}
+                        className="w-full border border-neutral-700 rounded-xl px-3 py-2.5 text-sm outline-none"
+                        style={{ background: '#1a1a1a', color: '#a3a3a3', colorScheme: 'dark' }}>
+                        <option value="">— None assigned —</option>
+                        <option value="assist">Assist a PC (+{cohort.quality || 1}d bonus)</option>
+                        <option value="ltp">Long-Term Project (roll Quality)</option>
+                        <option value="heat">Reduce Heat (roll Quality)</option>
+                        <option value="recover">Recover (2 levels of harm)</option>
+                      </select>
+                    </div>
+
+                    {/* Score assignment */}
+                    <div>
+                      <span className="text-[10px] uppercase font-black text-neutral-600 block mb-2">Score Assignment</span>
+                      <div className="flex gap-3">
+                        {['primary', 'secondary'].map(a => (
+                          <label key={a} className="flex items-center gap-2 cursor-pointer">
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${cohort.assignment === a ? 'bg-red-600 border-red-600' : 'border-neutral-700'}`}>
+                              {cohort.assignment === a && <div className="w-2 h-2 rounded-full bg-white" />}
+                            </div>
+                            <span className={`text-xs font-black uppercase ${cohort.assignment === a ? 'text-neutral-200' : 'text-neutral-600'}`}>{a}</span>
+                            <input type="radio" className="hidden" checked={cohort.assignment === a} onChange={() => updateCohort(cohort.id, { assignment: a })} />
+                          </label>
+                        ))}
+                      </div>
+                      {cohort.assignment === 'secondary' && (
+                        <button onClick={() => setSecondaryScoreCohort(cohort)}
+                          className="mt-2.5 w-full flex items-center justify-center gap-2 py-3 border border-red-900/50 text-red-400 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-950/20 transition-colors active:scale-95">
+                          <Dices size={13} /> Roll Secondary Score
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* UPGRADES TAB */}
+        {contentTab === 'upgrades' && (
+          <div className="p-4 flex flex-col gap-4">
+            {/* Crew-specific */}
+            <div>
+              <h4 className="text-[10px] uppercase font-black text-neutral-500 mb-2 border-b border-neutral-800 pb-2">{template.name} Specific</h4>
+              <div className="space-y-2">
+                {template.specificUpgrades.map(upg => {
+                  const owned = crew.upgrades.includes(upg.name);
+                  return (
+                    <div key={upg.name}>
+                      <button onClick={() => { toggleUpgrade(upg.name); setActiveUpgrade(activeUpgrade === upg.name ? null : upg.name); }}
+                        className="w-full px-4 py-3.5 border rounded-xl text-left flex justify-between items-center transition-all active:scale-[0.99]"
+                        style={owned
+                          ? { background: accentColor + '18', borderColor: accentColor + '60', color: accentColor }
+                          : { background: '#111113', borderColor: '#262626', color: '#737373' }}>
+                        <span className="font-black text-sm uppercase tracking-wide">{upg.name}</span>
+                        {owned && <CheckCircle size={16} />}
+                      </button>
+                      {activeUpgrade === upg.name && (
+                        <div className="px-4 py-3 text-sm text-neutral-400 leading-relaxed bg-[#09090b] border border-t-0 border-neutral-800 rounded-b-xl">
+                          {upg.desc}
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              </CollapsibleSection>
-
-              <ActiveBenefitsChips
-                claimBenefits={claimBenefits}
-                upgradeBenefits={upgradeBenefits}
-                upgradeDescs={upgradeDescs}
-                accentColor={accentColor}
-              />
-            </>
-          )}
-
-          {/* ── COHORTS TAB ── */}
-          {contentTab === 'cohorts' && (
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-neutral-500 flex items-center gap-1.5"><Users size={11} /> Cohorts</h3>
-                <button onClick={addCohort} className="flex items-center gap-1 text-[9px] font-black uppercase px-2 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-400 rounded-lg transition-colors">
-                  <PlusCircle size={10} /> Add
-                </button>
+                  );
+                })}
               </div>
-              {crew.cohorts.length === 0 ? (
-                <p className="text-xs text-neutral-600 italic">No cohorts established.</p>
-              ) : (
-                <div className="space-y-2.5">
-                  {crew.cohorts.map(cohort => (
-                    <div key={cohort.id} className="bg-[#09090b] border border-neutral-800 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input value={cohort.name} onChange={e => updateCohort(cohort.id, { name: e.target.value })}
-                          className="flex-1 bg-transparent font-black text-xs uppercase tracking-wide text-neutral-200 outline-none border-b border-neutral-800 focus:border-red-800 pb-0.5" />
-                        <button onClick={() => deleteCohort(cohort.id)} className="text-neutral-700 hover:text-red-500 transition-colors shrink-0"><Trash2 size={11} /></button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <select value={cohort.type} onChange={e => updateCohort(cohort.id, { type: e.target.value, subtype: '' })}
-                          className="bg-neutral-800 text-[10px] border border-neutral-700 text-neutral-400 px-2 py-1 outline-none rounded-lg">
-                          {COHORT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                        {cohort.type === 'Gang' ? (
-                          <select value={cohort.subtype} onChange={e => updateCohort(cohort.id, { subtype: e.target.value })}
-                            className="bg-neutral-800 text-[10px] border border-neutral-700 text-neutral-400 px-2 py-1 outline-none rounded-lg">
-                            <option value="">Type...</option>
-                            {GANG_SUBTYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                          </select>
-                        ) : (
-                          <input value={cohort.subtype} onChange={e => updateCohort(cohort.id, { subtype: e.target.value })}
-                            placeholder="Specialty..." className="border border-neutral-700 rounded-lg text-[10px] px-2 py-1 outline-none"
-                            style={{ background: '#1a1a1a', color: '#a3a3a3', colorScheme: 'dark' }} />
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <select value={cohort.status} onChange={e => updateCohort(cohort.id, { status: e.target.value })}
-                          className={`text-[10px] border px-2 py-1 outline-none rounded-lg font-bold uppercase ${STATUS_COLORS[cohort.status] || 'bg-neutral-800 border-neutral-700 text-neutral-400'}`}>
-                          {COHORT_STATUSES.map(s => <option key={s} value={s} className="bg-neutral-900 text-neutral-200">{s}</option>)}
-                        </select>
-                        <div className="flex items-center gap-1 bg-neutral-800 border border-neutral-700 rounded-lg px-2 py-1">
-                          <span className="text-[9px] font-black text-neutral-500 uppercase">Q</span>
-                          <button onClick={() => updateCohort(cohort.id, { quality: Math.max(0, (cohort.quality || 1) - 1) })} className="text-neutral-600 hover:text-white"><Minus size={9} /></button>
-                          <span className="text-xs font-black text-neutral-200 w-4 text-center">{cohort.quality || 1}</span>
-                          <button onClick={() => updateCohort(cohort.id, { quality: Math.min(6, (cohort.quality || 1) + 1) })} className="text-neutral-600 hover:text-white"><Plus size={9} /></button>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <span className="text-[9px] uppercase font-black text-neutral-600 block mb-1">Edges</span>
-                          {COHORT_EDGES.map(e => (
-                            <label key={e} className="flex items-center gap-1.5 cursor-pointer group mb-0.5">
-                              <div className={`w-2.5 h-2.5 rounded border transition-colors flex-shrink-0 ${cohort.edges.includes(e) ? 'bg-red-600 border-red-600' : 'border-neutral-700 group-hover:border-neutral-400'}`} />
-                              <span className="text-[9px] text-neutral-400">{e}</span>
-                              <input type="checkbox" className="hidden" checked={cohort.edges.includes(e)}
-                                onChange={() => updateCohort(cohort.id, { edges: cohort.edges.includes(e) ? cohort.edges.filter(x => x !== e) : [...cohort.edges, e] })} />
-                            </label>
-                          ))}
-                        </div>
-                        <div>
-                          <span className="text-[9px] uppercase font-black text-neutral-600 block mb-1">Flaws</span>
-                          {COHORT_FLAWS.map(f => (
-                            <label key={f} className="flex items-center gap-1.5 cursor-pointer group mb-0.5">
-                              <div className={`w-2.5 h-2.5 rounded border transition-colors flex-shrink-0 ${cohort.flaws.includes(f) ? 'bg-red-600 border-red-600' : 'border-neutral-700 group-hover:border-neutral-400'}`} />
-                              <span className="text-[9px] text-neutral-400">{f}</span>
-                              <input type="checkbox" className="hidden" checked={cohort.flaws.includes(f)}
-                                onChange={() => updateCohort(cohort.id, { flaws: cohort.flaws.includes(f) ? cohort.flaws.filter(x => x !== f) : [...cohort.flaws, f] })} />
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-[9px] uppercase font-black text-neutral-600 block mb-1">Downtime Action</span>
-                        <select value={cohort.downtimeAction || ''} onChange={e => updateCohort(cohort.id, { downtimeAction: e.target.value })}
-                          className="w-full bg-neutral-800 text-[10px] border border-neutral-700 text-neutral-400 px-2 py-1 outline-none rounded-lg">
-                          <option value="">— None assigned —</option>
-                          <option value="assist">Assist a PC (+{cohort.quality || 1}d bonus)</option>
-                          <option value="ltp">Long-Term Project (roll Quality)</option>
-                          <option value="heat">Reduce Heat (roll Quality)</option>
-                          <option value="recover">Recover (2 levels of harm)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <span className="text-[9px] uppercase font-black text-neutral-600 block mb-1">Score Assignment</span>
-                        <div className="flex gap-3">
-                          {['primary', 'secondary'].map(a => (
-                            <label key={a} className="flex items-center gap-1.5 cursor-pointer group">
-                              <div className={`w-3 h-3 rounded-full border transition-colors ${cohort.assignment === a ? 'border-red-600 bg-red-600' : 'border-neutral-700 group-hover:border-neutral-400'}`} />
-                              <span className={`text-[9px] uppercase font-black ${cohort.assignment === a ? 'text-neutral-200' : 'text-neutral-600'}`}>{a}</span>
-                              <input type="radio" className="hidden" checked={cohort.assignment === a} onChange={() => updateCohort(cohort.id, { assignment: a })} />
-                            </label>
-                          ))}
-                        </div>
-                        {cohort.assignment === 'secondary' && (
-                          <button onClick={() => setSecondaryScoreCohort(cohort)}
-                            className="mt-1.5 w-full flex items-center justify-center gap-1.5 py-1.5 border border-red-900/50 text-red-400 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-red-950/20 transition-colors">
-                            <Dices size={10} /> Roll Secondary Score
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          )}
 
-          {/* ── UPGRADES TAB ── */}
-          {contentTab === 'upgrades' && (
-            <div className="space-y-3">
-              {/* Crew-specific */}
-              <div>
-                <h4 className="text-[9px] uppercase font-black text-neutral-600 mb-1.5 border-b border-neutral-800 pb-1">{template.name} Specific</h4>
-                <div className="space-y-1">
-                  {template.specificUpgrades.map(upg => {
-                    const owned = crew.upgrades.includes(upg.name);
+            {/* General upgrades */}
+            {GENERAL_UPGRADES.map(cat => (
+              <div key={cat.category}>
+                <h4 className="text-[10px] uppercase font-black text-neutral-500 mb-2 border-b border-neutral-800 pb-2">{cat.category}</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {cat.items.map(item => {
+                    const key   = `${cat.category}: ${item.name}`;
+                    const owned = crew.upgrades.includes(key);
                     return (
-                      <div key={upg.name}>
-                        <button onClick={() => { toggleUpgrade(upg.name); setActiveUpgrade(activeUpgrade === upg.name ? null : upg.name); }}
-                          className={`w-full text-[10px] font-bold px-2.5 py-2 border rounded-xl text-left flex justify-between items-center transition-colors ${owned ? 'text-white' : 'bg-[#09090b] border-neutral-800 text-neutral-500 hover:border-neutral-600'}`}
-                          style={owned ? { background: accentColor + '20', borderColor: accentColor + '80', color: accentColor } : {}}>
-                          {upg.name}
-                          {owned && <CheckCircle size={11} />}
+                      <div key={item.name}>
+                        <button onClick={() => { toggleUpgrade(key); setActiveUpgrade(activeUpgrade === key ? null : key); }}
+                          className="w-full px-3 py-3 border rounded-xl text-left flex justify-between items-center transition-all active:scale-[0.99]"
+                          style={owned
+                            ? { background: accentColor + '15', borderColor: accentColor + '50', color: accentColor }
+                            : { background: '#111113', borderColor: '#262626', color: '#737373' }}>
+                          <span className="font-bold text-xs uppercase tracking-wide">{item.name}</span>
+                          {owned && <CheckCircle size={13} />}
                         </button>
-                        {(activeUpgrade === upg.name) && (
-                          <div className="text-[10px] text-neutral-400 leading-snug p-2 bg-[#09090b] border border-t-0 border-neutral-800 rounded-b-xl">{upg.desc}</div>
+                        {activeUpgrade === key && (
+                          <div className="px-3 py-2.5 text-xs text-neutral-400 leading-relaxed bg-[#09090b] border border-t-0 border-neutral-800 rounded-b-xl col-span-2">
+                            {item.desc}
+                          </div>
                         )}
                       </div>
                     );
                   })}
                 </div>
               </div>
-              {/* General upgrades */}
-              {GENERAL_UPGRADES.map(cat => (
-                <div key={cat.category}>
-                  <h4 className="text-[9px] uppercase font-black text-neutral-600 mb-1.5 border-b border-neutral-800 pb-1">{cat.category}</h4>
-                  <div className="grid grid-cols-2 gap-1">
-                    {cat.items.map(item => {
-                      const key   = `${cat.category}: ${item.name}`;
-                      const owned = crew.upgrades.includes(key);
-                      return (
-                        <div key={item.name}>
-                          <button onClick={() => { toggleUpgrade(key); setActiveUpgrade(activeUpgrade === key ? null : key); }}
-                            className={`w-full text-[10px] font-bold px-2 py-1.5 border rounded-xl text-left flex justify-between items-center transition-colors ${owned ? 'text-white' : 'bg-[#09090b] border-neutral-800 text-neutral-500 hover:border-neutral-600'}`}
-                            style={owned ? { background: accentColor + '15', borderColor: accentColor + '60', color: accentColor } : {}}>
-                            {item.name}
-                            {owned && <CheckCircle size={10} />}
-                          </button>
-                          {activeUpgrade === key && (
-                            <div className="text-[10px] text-neutral-400 leading-snug p-2 bg-[#09090b] border border-t-0 border-neutral-800 rounded-b-xl col-span-2">{item.desc}</div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Claims map */}
-        <div className="flex-1 bg-[#09090b] flex flex-col overflow-hidden">
-          <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-neutral-800">
-            <div>
-              <h3 className="text-[10px] font-black uppercase tracking-widest" style={{ color: accentColor }}>Claims Network · {template.name}</h3>
-              <p className="text-[9px] text-neutral-600 mt-0.5">Claim adjacent nodes to expand territory. ★ = special one-off opportunity.</p>
-            </div>
+            ))}
           </div>
-          <div className="flex-1 overflow-auto flex items-center justify-center p-2">
-            <ClaimsGrid
-              claims={enhancedClaims}
-              onNodeSelect={setSelectedNodeId}
-              selectedNodeId={selectedNodeId}
-              accentColor={accentColor}
-            />
-          </div>
-        </div>
+        )}
       </div>
+
+        {/* MEMBERS TAB */}
+        {contentTab === 'members' && (
+          <div className="p-4">
+            <MembersPanel crew={crew} pb={pb} userId={userId} onUpdate={onUpdate} />
+          </div>
+        )}
 
       {/* Modals */}
       {selectedNodeId && (
@@ -1252,12 +1688,16 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar }) {
       {showWardBoss && (
         <WardBossModal wardBoss={crew.wardBoss || {}} onUpdate={wb => onUpdate({ wardBoss: wb })} onClose={() => setShowWardBoss(false)} />
       )}
+      {showShare && (
+        <ShareCrewModal crew={crew} onClose={() => setShowShare(false)} />
+      )}
       {secondaryScoreCohort && (
         <SecondaryScoreModal cohort={secondaryScoreCohort} onClose={() => setSecondaryScoreCohort(null)} />
       )}
     </div>
   );
 }
+
 
 // ─── CREW CREATION ────────────────────────────────────────────────────────────
 
@@ -1353,33 +1793,176 @@ const CrewManager = ({
   characters: charactersProp = [],
   setCharacters = () => {},
   preselectedCharId = null,
+  pbInstance = null,
+  userId = null,
 }) => {
   const characters = charactersProp;
 
-  const [crews, setCrews] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('crews') || '[]'); }
-    catch { return []; }
-  });
-  const [activeCrewId, setActiveCrewId] = useState(null);
-  const [view, setView] = useState('roster');
+  // Use the passed pbInstance, or fall back to a local one
+  // Always use the pbInstance passed from App.jsx to avoid auto-cancellation conflicts
+  const pb = pbInstance;
 
-  useEffect(() => { localStorage.setItem('crews', JSON.stringify(crews)); }, [crews]);
+  const [crews, setCrews]           = useState([]);
+  const [activeCrewId, setActiveCrewId] = useState(null);
+  const [view, setView]             = useState('roster');
+  const [loading, setLoading]       = useState(true);
+  const [loadError, setLoadError]   = useState(null);
+  const [showJoin, setShowJoin]     = useState(false);
+
+
+  const debounceTimer = useRef(null);
+  const pendingUpdates = useRef({});
+
+  // Load crews from PocketBase on mount
+  useEffect(() => {
+    const loadCrews = async () => {
+      // Guard: pb must exist before we attempt any collection calls
+      if (!pb) {
+        console.error('CrewManager: pbInstance prop is required — skipping crew load');
+        setLoadError('No database connection was provided.');
+        setLoading(false);
+        return;
+      }
+      setLoadError(null);
+      try {
+        const records = await pb.collection('crews').getFullList({ sort: '-created', '$autoCancel': false });
+        // Normalize PocketBase field names (templateID -> templateId etc.) for internal use
+        const normalized = records.map(r => ({
+          ...r,
+          templateId:  r.templateID  || r.templateId,
+          characterId: r.characterID || r.characterId,
+        }));
+        setCrews(normalized);
+      } catch (err) {
+        console.error('Could not load crews:', err);
+        setLoadError(err.message || 'Could not connect to the server.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCrews();
+  }, []);
 
   const activeCrew = crews.find(c => c.id === activeCrewId);
 
-  const handleCreated = (crew) => { setCrews(prev => [...prev, crew]); setActiveCrewId(crew.id); setView('dashboard'); };
-  const handleUpdate = (updates) => { setCrews(prev => prev.map(c => c.id === activeCrewId ? { ...c, ...updates } : c)); };
-  const handleTransferChar = (charId, updates) => { setCharacters(prev => prev.map(c => c.id === charId ? { ...c, ...updates } : c)); };
-  const handleDelete = (id) => {
-    if (!confirm('Permanently disband this crew?')) return;
-    setCrews(prev => prev.filter(c => c.id !== id));
-    if (activeCrewId === id) { setActiveCrewId(null); setView('roster'); }
+  // Create new crew in PocketBase
+  const handleCreated = async (crewTemplate) => {
+    try {
+      const finalUserId = userId || pb.authStore.record?.id || pb.authStore.model?.id;
+      if (!finalUserId) { console.error('No user ID found'); return; }
+      // Build a clean payload - PocketBase JSON fields need plain objects
+      const payload = {
+        name:           crewTemplate.name,
+        templateID:     crewTemplate.templateId,
+        characterID:    crewTemplate.characterId,
+        tier:           crewTemplate.tier || 0,
+        rep:            crewTemplate.rep || 0,
+        heat:           crewTemplate.heat || 0,
+        wanted:         crewTemplate.wanted || 0,
+        stacks:         crewTemplate.stacks || 0,
+        claimsState:    crewTemplate.claimsState || {},
+        cohorts:        crewTemplate.cohorts || [],
+        upgrades:       crewTemplate.upgrades || [],
+        wardBoss:       crewTemplate.wardBoss || {},
+        utopianCircle:  crewTemplate.utopianCircle || '',
+        utopianVision:  crewTemplate.utopianVision || '',
+        inviteCode:     crewTemplate.inviteCode || generateInviteCode(),
+        ownerId:        finalUserId,
+        memberId:       [],
+        user:           finalUserId,
+      };
+      const record = await pb.collection('crews').create(payload, { '$autoCancel': false });
+      // Normalize the returned record to use camelCase internally
+      record.templateId  = record.templateID;
+      record.characterId = record.characterID;
+      setCrews(prev => [...prev, record]);
+      setActiveCrewId(record.id);
+      setView('dashboard');
+    } catch (err) {
+      console.error('Failed to create crew:', err);
+    }
   };
 
-  const filteredCrews = preselectedCharId ? crews.filter(c => c.characterId === preselectedCharId) : crews;
+  // Update crew — debounced sync to PocketBase (same pattern as CharacterManager)
+  const handleUpdate = (updates) => {
+    setCrews(prev => prev.map(c => c.id === activeCrewId ? { ...c, ...updates } : c));
+    if (activeCrewId) {
+      pendingUpdates.current = { ...pendingUpdates.current, ...updates };
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      const currentId = activeCrewId;
+      debounceTimer.current = setTimeout(async () => {
+        const rawPayload = { ...pendingUpdates.current };
+        pendingUpdates.current = {};
+        // Rename camelCase fields to match PocketBase column names
+        const payload = { ...rawPayload };
+        if ('templateId'  in payload) { payload.templateID  = payload.templateId;  delete payload.templateId; }
+        if ('characterId' in payload) { payload.characterID = payload.characterId; delete payload.characterId; }
+        try {
+          await pb.collection('crews').update(currentId, payload, { '$autoCancel': false });
+        } catch (err) {
+          console.error('Failed to sync crew to PocketBase:', err);
+        }
+      }, 750);
+    }
+  };
+
+  const handleTransferChar = (charId, updates) => {
+    setCharacters(prev => prev.map(c => c.id === charId ? { ...c, ...updates } : c));
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Permanently disband this crew?')) return;
+    try {
+      await pb.collection('crews').delete(id, { '$autoCancel': false });
+      setCrews(prev => prev.filter(c => c.id !== id));
+      if (activeCrewId === id) { setActiveCrewId(null); setView('roster'); }
+    } catch (err) {
+      console.error('Failed to delete crew:', err);
+    }
+  };
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+  }, []);
+
+  const currentUserId = userId || pb?.authStore.record?.id || pb?.authStore.model?.id;
+  const filteredCrews = crews.filter(c => {
+    // Show if user is owner or approved member
+    const isMember = (c.memberId || []).includes(currentUserId) || c.ownerId === currentUserId || c.user === currentUserId;
+    if (preselectedCharId) return isMember && c.characterId === preselectedCharId;
+    return isMember;
+  });
+
+  // Retry helper — re-runs the same fetch logic
+  const retryLoad = () => {
+    if (!pb) return;
+    setLoading(true);
+    setLoadError(null);
+    pb.collection('crews').getFullList({ sort: '-created', '$autoCancel': false })
+      .then(records => setCrews(records.map(r => ({
+        ...r,
+        templateId:  r.templateID  || r.templateId,
+        characterId: r.characterID || r.characterId,
+      }))))
+      .catch(err => setLoadError(err.message || 'Could not connect to the server.'))
+      .finally(() => setLoading(false));
+  };
+
+  // Always show the dagger screen while loading or on error — before any view checks
+  if (loading || loadError) {
+    return (
+      <LoadingDagger
+        message="Assembling the crew..."
+        error={loadError}
+        onRetry={loadError ? retryLoad : null}
+      />
+    );
+  }
 
   if (view === 'dashboard' && activeCrew) {
-    return <CrewDashboard crew={activeCrew} characters={characters} onBack={() => { setView('roster'); setActiveCrewId(null); }} onUpdate={handleUpdate} onTransferChar={handleTransferChar} />;
+    const currentUserId = userId || pb?.authStore.record?.id || pb?.authStore.model?.id;
+    return <CrewDashboard crew={activeCrew} characters={characters} onBack={() => { setView('roster'); setActiveCrewId(null); }} onUpdate={handleUpdate} onTransferChar={handleTransferChar} pb={pb} userId={currentUserId} />;
   }
   if (view === 'create') {
     return <CrewCreation characters={characters} preselectedCharId={preselectedCharId} onCreated={handleCreated} onCancel={() => setView('roster')} />;
@@ -1387,12 +1970,28 @@ const CrewManager = ({
 
   return (
     <div className="space-y-5 animate-fade-in p-4 pb-28 max-w-5xl mx-auto" style={{ background: '#09090b', minHeight: '100%' }}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-black uppercase tracking-widest text-neutral-200">{preselectedCharId ? 'Linked Crews' : 'Crews'}</h2>
-        <button onClick={() => setView('create')} className="flex items-center gap-2 bg-neutral-200 text-black font-bold px-4 py-2 text-sm rounded-lg hover:bg-white transition-colors shadow-sm">
+        <button onClick={() => setView('create')} className="flex items-center gap-2 bg-neutral-200 text-black font-bold px-4 py-2 text-sm rounded-lg hover:bg-white transition-colors shadow-sm shrink-0">
           <PlusCircle size={15} /> New Crew
         </button>
       </div>
+
+      {/* Join crew with code */}
+      <button onClick={() => setShowJoin(true)}
+        className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-neutral-700 rounded-xl text-sm font-black uppercase tracking-widest text-neutral-500 hover:text-neutral-300 hover:border-neutral-500 transition-colors">
+        <UserPlus size={15} /> Join a Crew with Code
+      </button>
+
+      {showJoin && pb && (
+        <JoinCrewModal
+          pb={pb}
+          userId={currentUserId}
+          characters={characters}
+          onJoined={() => { setShowJoin(false); }}
+          onClose={() => setShowJoin(false)}
+        />
+      )}
 
       {filteredCrews.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 border border-neutral-800/50 border-dashed rounded-2xl bg-[#111113]/50 text-neutral-600">
@@ -1423,10 +2022,13 @@ const CrewManager = ({
                   </div>
                 </div>
                 {linkedChar && <p className="text-xs text-neutral-500 mb-3">↳ {linkedChar.name} · {linkedChar.playbook}</p>}
-                <div className="flex items-center gap-3 pt-3 border-t border-neutral-800/50 text-[10px] font-black uppercase tracking-widest text-neutral-600">
+                <div className="flex items-center gap-3 pt-3 border-t border-neutral-800/50 text-[10px] font-black uppercase tracking-widest text-neutral-600 flex-wrap">
                   <span className="flex items-center gap-1"><DollarSign size={10} /> {crew.stacks || 0}</span>
                   <span className="flex items-center gap-1"><Crown size={10} className={angerFull ? 'text-amber-500' : ''} /> {ownedCount} claims</span>
                   <span>Tier {crew.tier || 0}</span>
+                  {(crew.memberId || []).length > 0 && (
+                    <span className="flex items-center gap-1 text-blue-500"><Users size={10} /> {(crew.memberId || []).length + 1}</span>
+                  )}
                   {angerFull && <span className="text-amber-500 flex items-center gap-1"><AlertTriangle size={10} /> Angry</span>}
                 </div>
               </div>

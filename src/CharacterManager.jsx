@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import PocketBase from 'https://esm.sh/pocketbase';
+import PocketBase from 'pocketbase';
 import {
   ChevronDown, ChevronRight, Swords, Shield, Dices, Moon, User,
   Menu, X, Users, Target, Globe, Search, BookOpen, Package, Star, Skull, Settings, Zap,
@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { DB } from "./database";
 
-const pb = new PocketBase('https://GentryPerry.myasustor.com:8091');
 
 const Check = ({ size = 24, strokeWidth = 2, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -76,6 +75,19 @@ const PLAYBOOK_ITEMS = {
 
 
 const STYLES = `
+@keyframes daggerSpin {
+  0%   { transform: rotate(0deg)   scale(1);    filter: drop-shadow(0 0 6px rgba(239,68,68,0.0)); }
+  25%  { transform: rotate(90deg)  scale(1.08); filter: drop-shadow(0 0 10px rgba(239,68,68,0.5)); }
+  50%  { transform: rotate(180deg) scale(1);    filter: drop-shadow(0 0 6px rgba(239,68,68,0.0)); }
+  75%  { transform: rotate(270deg) scale(1.08); filter: drop-shadow(0 0 10px rgba(239,68,68,0.5)); }
+  100% { transform: rotate(360deg) scale(1);    filter: drop-shadow(0 0 6px rgba(239,68,68,0.0)); }
+}
+@keyframes daggerPulse {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(1.3); }
+}
+.dagger-spin { animation: daggerSpin 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.dagger-glow { animation: daggerPulse 1.4s ease-in-out infinite; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scaleIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
@@ -125,6 +137,41 @@ const STYLES = `
 .screen-scroll::-webkit-scrollbar-track { background: transparent; }
 .screen-scroll::-webkit-scrollbar-thumb { background-color: #27272a; border-radius: 10px; }
 `;
+
+// ─── DAGGER LOADING SCREEN ────────────────────────────────────────────────────
+const LoadingDagger = ({ message = "Loading...", error = null, onRetry = null }) => (
+  <div className="flex flex-col items-center justify-center py-32 animate-fade-in select-none" style={{ minHeight: 320 }}>
+    <style>{STYLES}</style>
+    <div className="relative flex items-center justify-center mb-6" style={{ width: 96, height: 96 }}>
+      {/* Glow ring behind the dagger */}
+      <div className="dagger-glow absolute rounded-full"
+        style={{ width: 80, height: 80, background: 'radial-gradient(circle, rgba(239,68,68,0.4) 0%, transparent 70%)' }} />
+      {/* Spinning dagger image */}
+      {error ? (
+        <span className="text-5xl">⚠️</span>
+      ) : (
+        <img
+          src="/blades-icon.png"
+          alt="Loading"
+          className="dagger-spin relative z-10"
+          style={{ width: 56, height: 56, objectFit: 'contain' }}
+        />
+      )}
+    </div>
+    <p className="text-xs font-black uppercase tracking-widest text-neutral-500 mb-1">
+      {error ? 'Connection Failed' : message}
+    </p>
+    {error && (
+      <p className="text-[11px] text-neutral-600 mb-4 text-center max-w-xs">{error}</p>
+    )}
+    {error && onRetry && (
+      <button onClick={onRetry}
+        className="mt-2 px-4 py-2 text-xs font-bold uppercase tracking-widest border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500 rounded-lg transition-colors">
+        Try Again
+      </button>
+    )}
+  </div>
+);
 
 const Tracker = ({ value, max, onChange, type = "dot", slant = false }) => {
   const [animatingIndex, setAnimatingIndex] = useState(null);
@@ -786,6 +833,11 @@ const defaultChar = (game, playbook) => {
       finesse: pbData.dots.finesse || 0, prowl: pbData.dots.prowl || 0, skirmish: pbData.dots.skirmish || 0, wreck: pbData.dots.wreck || 0,
       attune: pbData.dots.attune || 0, command: pbData.dots.command || 0, consort: pbData.dots.consort || 0, sway: pbData.dots.sway || 0
     },
+    keys: [
+      { text: "", xp: 0, deadlocked: false, deadlockText: "" },
+      { text: "", xp: 0, deadlocked: false, deadlockText: "" },
+      { text: "", xp: 0, deadlocked: false, deadlockText: "" }
+    ],
     harm: { mortal: "", critical: "", major1: "", major2: "", passing1: "", passing2: "" },
     healing: 0, armor: false, specialArmor: 0, coin: 0, stash: 0,
     selectedAbilities: [], loadoutType: "Quiet",
@@ -1151,6 +1203,42 @@ const CombatScreen = ({ activeChar, updateChar, updateNested, isB68, traumaName 
           </div>
         </div>
       </div>
+
+      {/* Keys in combat for quick reference */}
+      <div className="bg-[#111113] border border-neutral-800 rounded-xl p-5 shadow-sm space-y-3">
+        <div className="flex items-center justify-between border-b border-neutral-800 pb-2 mb-1">
+          <h3 className="font-black uppercase tracking-widest text-neutral-500 text-[10px]">Keys</h3>
+          <h3 className="font-black uppercase tracking-widest text-neutral-500 text-[10px]">{isB68 ? 'Deadlocks' : 'Traumas'}</h3>
+        </div>
+        {(activeChar.keys || []).map((k, i) => (
+          <div key={i} className="flex items-center gap-1.5 w-full">
+            <input value={k.text} onChange={e => {
+              const newKeys = [...activeChar.keys];
+              newKeys[i] = { ...k, text: e.target.value };
+              updateChar({ keys: newKeys });
+            }} className="flex-1 min-w-0 bg-[#09090b] border border-neutral-800 rounded-l-full px-3 py-1 text-xs text-neutral-300 outline-none focus:border-red-500 transition-colors" placeholder="Key..." />
+            <div className="shrink-0 bg-[#09090b] border border-neutral-800 px-2 py-1 flex items-center justify-center">
+              <Tracker value={k.xp} max={3} onChange={(v) => {
+                const newKeys = [...activeChar.keys];
+                newKeys[i] = { ...k, xp: v };
+                updateChar({ keys: newKeys });
+              }} type="box" slant />
+            </div>
+            <button type="button" onClick={() => {
+              const newKeys = [...activeChar.keys];
+              newKeys[i] = { ...k, deadlocked: !k.deadlocked };
+              updateChar({ keys: newKeys });
+            }} className={`shrink-0 p-1.5 transition-colors ${k.deadlocked ? 'text-red-500' : 'text-neutral-600 hover:text-neutral-400'}`}>
+              {k.deadlocked ? <Zap size={14} fill="currentColor" /> : <ZapOff size={14} />}
+            </button>
+            <input value={k.deadlockText} onChange={e => {
+              const newKeys = [...activeChar.keys];
+              newKeys[i] = { ...k, deadlockText: e.target.value };
+              updateChar({ keys: newKeys });
+            }} className="flex-1 min-w-0 bg-[#09090b] border border-neutral-800 rounded-r-full px-3 py-1 text-xs text-neutral-400 outline-none focus:border-red-500 transition-colors" placeholder={isB68 ? "Deadlock..." : "Trauma..."} disabled={!k.deadlocked} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -1165,7 +1253,8 @@ const CharacterManager = ({
   setCharacters = () => {}, 
   setModal = () => {} 
 }) => {
-  const activePb = pbInstance || pb;
+  // Always use the pbInstance passed from App.jsx — it carries the live authenticated authStore.
+  const activePb = pbInstance;
   const [activeCharId, setActiveCharId] = useState(null);
   const [viewMode, setViewMode] = useState("sheet");
   const [activeSection, setActiveSection] = useState("abilities");
@@ -1180,6 +1269,8 @@ const CharacterManager = ({
   const [newGame, setNewGame] = useState("B68");
   const [newPlaybook, setNewPlaybook] = useState("");
   const [isManifesting, setIsManifesting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const debounceTimer = useRef(null);
   const pendingUpdates = useRef({});
   const activeChar = characters.find(c => c.id === activeCharId);
@@ -1214,21 +1305,17 @@ const CharacterManager = ({
   useEffect(() => {
     const loadScoundrels = async () => {
       try {
-        if (!pbInstance) {
-          const localAuth = localStorage.getItem('pocketbase_auth');
-          if (localAuth) {
-            const parsed = JSON.parse(localAuth);
-            activePb.authStore.save(parsed.token, parsed.model);
-          }
-        }
-        const records = await activePb.collection('characters').getFullList({ sort: '-created' });
+        const records = await activePb.collection('characters').getFullList({ sort: '-created', '$autoCancel': false });
         setCharacters(records);
       } catch (err) {
-        console.error("Could not load crew from NAS:", err);
+        console.error("Could not load characters:", err);
+        setLoadError(err.message || 'Could not connect to the server.');
+      } finally {
+        setLoading(false);
       }
     };
     loadScoundrels();
-  }, [setCharacters, activePb, pbInstance]);
+  }, [setCharacters, activePb]);
 
   const updateChar = (updates) => {
     setCharacters(prev => prev.map(c => c.id === activeCharId ? { ...c, ...updates } : c));
@@ -1240,7 +1327,7 @@ const CharacterManager = ({
         const payload = { ...pendingUpdates.current };
         pendingUpdates.current = {};
         try {
-          await activePb.collection('characters').update(currentId, payload);
+          await activePb.collection('characters').update(currentId, payload, { '$autoCancel': false });
         } catch (err) {
           console.error("Failed to sync to NAS:", err);
         }
@@ -1257,16 +1344,10 @@ const CharacterManager = ({
     setIsManifesting(true);
     const template = defaultChar(newGame, newPlaybook);
     try {
-      if (!pbInstance) {
-        const localAuth = localStorage.getItem('pocketbase_auth');
-        if (localAuth) {
-          const parsed = JSON.parse(localAuth);
-          activePb.authStore.save(parsed.token, parsed.model);
-        }
-      }
+      // pbInstance is already authenticated via App.jsx — no manual auth re-save needed.
       const finalUserId = userId || activePb.authStore.record?.id || activePb.authStore.model?.id;
       if (!finalUserId) { console.error("No valid user ID found."); setIsManifesting(false); return; }
-      const newRecord = await activePb.collection('characters').create({ ...template, user: finalUserId });
+      const newRecord = await activePb.collection('characters').create({ ...template, user: finalUserId }, { '$autoCancel': false });
       setCharacters([...characters, newRecord]);
       setActiveCharId(newRecord.id);
       setIsCreating(false);
@@ -1280,7 +1361,7 @@ const CharacterManager = ({
   const deleteChar = async (id) => {
     if (confirm("Are you sure you want to permanently delete this scoundrel?")) {
       try {
-        await activePb.collection('characters').delete(id);
+        await activePb.collection('characters').delete(id, { '$autoCancel': false });
         setCharacters(prev => prev.filter(c => c.id !== id));
         if (activeCharId === id) setActiveCharId(null);
       } catch (err) {
@@ -1288,6 +1369,24 @@ const CharacterManager = ({
       }
     }
   };
+
+  // Show dagger spinner while fetching characters, or error state if it failed
+  if (loading || loadError) {
+    return (
+      <LoadingDagger
+        message="Summoning scoundrels..."
+        error={loadError}
+        onRetry={loadError ? () => {
+          setLoading(true);
+          setLoadError(null);
+          activePb.collection('characters').getFullList({ sort: '-created', '$autoCancel': false })
+            .then(records => setCharacters(records))
+            .catch(err => setLoadError(err.message || 'Could not connect to the server.'))
+            .finally(() => setLoading(false));
+        } : null}
+      />
+    );
+  }
 
   // Wizard UI
   if (isCreating) {
@@ -1313,9 +1412,9 @@ const CharacterManager = ({
           <div className="space-y-4 animate-fade-in">
             <label className="block text-xs font-bold uppercase tracking-widest text-neutral-500">2. Choose Your Playbook</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.keys(PLAYBOOKS[newGame] || {}).map(pb => (
-                <button key={pb} onClick={() => setNewPlaybook(pb)} className={`py-2.5 px-3 rounded-lg border text-xs font-bold transition-all ${newPlaybook === pb ? "bg-red-900/40 border-red-500/50 text-red-200" : "bg-[#09090b] border-neutral-800 text-neutral-400 hover:border-neutral-600"}`}>
-                  {pb}
+              {Object.keys(PLAYBOOKS[newGame] || {}).map(playbookName => (
+                <button key={playbookName} onClick={() => setNewPlaybook(playbookName)} className={`py-2.5 px-3 rounded-lg border text-xs font-bold transition-all ${newPlaybook === playbookName ? "bg-red-900/40 border-red-500/50 text-red-200" : "bg-[#09090b] border-neutral-800 text-neutral-400 hover:border-neutral-600"}`}>
+                  {playbookName}
                 </button>
               ))}
             </div>
@@ -1529,8 +1628,8 @@ const CharacterManager = ({
           <input value={activeChar.alias} onChange={e => updateChar({alias: e.target.value})} className="w-full bg-transparent border-b border-neutral-800 sm:border-transparent hover:border-neutral-700 focus:border-red-500 pb-0.5 text-neutral-400 italic font-bold outline-none transition-colors" placeholder="Alias" />
           <div className="hidden sm:block text-right">
             <select value={activeChar.playbook} onChange={e => updateChar({playbook: e.target.value})} className="bg-transparent text-xs font-black uppercase tracking-widest text-neutral-500 outline-none appearance-none cursor-pointer">
-              {Object.keys(PLAYBOOKS[activeChar.game] || {}).map(pb => (
-                <option key={pb} value={pb} className="bg-neutral-900 text-white">{pb}</option>
+              {Object.keys(PLAYBOOKS[activeChar.game] || {}).map(playbookName => (
+                <option key={playbookName} value={playbookName} className="bg-neutral-900 text-white">{playbookName}</option>
               ))}
             </select>
             <div className="text-[9px] text-neutral-600 uppercase font-bold">{isB68 ? "Blades '68" : "BitD Core"}</div>

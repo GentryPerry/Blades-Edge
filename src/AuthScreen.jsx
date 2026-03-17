@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import PocketBase from 'pocketbase';
 import { User, Key, ArrowRight, Dices, ChevronRight, Check } from 'lucide-react';
 
-const pb = new PocketBase('https://gentryperry.myasustor.com:8091');
 
 const STYLES = `
   @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -57,7 +55,7 @@ const DaggerParticles = ({ count = 100 }) => {
   );
 };
 
-const AuthScreen = ({ onLogin }) => {
+const AuthScreen = ({ onLogin, pb }) => {
   const [emailInput, setEmailInput] = useState(""); 
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
