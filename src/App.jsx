@@ -4,6 +4,7 @@ import {
   Menu, X, Target, Globe, Search, BookOpen, Package, Star, Skull, Settings, Zap,
   Clock, Trash2, Plus, Minus, ArrowLeft, PlusCircle, ZapOff, FileText, GripVertical, Layout, Check as CheckIcon, MinusCircle
 } from "lucide-react";
+import ScoreRunnerView from "./ScoreRunner";
 import { DB } from "./database";
 import { callGemini } from "./gemini";
 import CharacterManager from "./CharacterManager";
@@ -73,6 +74,7 @@ const DEFAULT_NAV = [
     { id:"Playbooks", label:"Crew Types", icon:"BookOpen", hidden: false },
   ]},
   { id: "cat-storyteller", role:"storyteller", label:"Storyteller", category:"Storyteller", hidden: false, tabs:[
+    { id:"Score Runner",  label:"Score Runner",  icon:"FileText", hidden: false },
     { id:"Entanglements", label:"Entanglements", icon:"Skull", hidden: false },
     { id:"Rules",         label:"ST Rules",      icon:"BookOpen", hidden: false },
     { id:"Clocks",        label:"Clocks",        icon:"Clock", hidden: false },
@@ -562,7 +564,7 @@ export default function App() {
       return ["title","content","tags","subcategory","preview","sub","sub-subcategory"].some(k => r[k]?.toLowerCase().includes(lq));
     }
     if (showFavorites) return false;
-    if (tab === "Clocks" || tab === "Generators ✨" || tab === "Characters" || tab === "Dice Roller") return false;
+    if (tab === "Clocks" || tab === "Generators ✨" || tab === "Characters" || tab === "Dice Roller" || tab === "Score Runner") return false;
     const dbSub = r.subcategory?.toLowerCase();
     const tabCompare = tab?.toLowerCase();
     if (tabCompare === 'pos & effect' && dbSub === 'pos & effect') {
@@ -726,7 +728,7 @@ export default function App() {
         </header>
 
         {/* Hide the top search bar entirely when CharacterManager is showing (roster or sheet) */}
-        {!(tab === "Characters" && role === "roster") && (
+        {!(tab === "Characters" && role === "roster") && !(tab === "Score Runner" && role === "storyteller") && (
         <div className="shrink-0 px-5 pt-4 pb-3 space-y-3 shadow-sm z-10 relative" style={{ background:"#09090b" }}>
           <div className="relative">
             <Search size={14} className="absolute left-3.5 top-3 text-neutral-500"/>
@@ -758,6 +760,9 @@ export default function App() {
               userId={pb.authStore.record?.id || pb.authStore.model?.id}
               pbInstance={pb} 
             />
+          )}
+          {!qTrim && !showFavorites && tab === "Score Runner" && role === "storyteller" && (
+            <ScoreRunnerView userId={pb.authStore.record?.id || pb.authStore.model?.id} />
           )}
           {!qTrim && !showFavorites && tab === "Clocks" && role === "storyteller" && (
             <ClocksView clocks={clocks} setClocks={setClocks} />

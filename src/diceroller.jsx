@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const PIP_LAYOUTS = {
+export const PIP_LAYOUTS = {
   1: [[50, 50]],
   2: [[25, 25], [75, 75]],
   3: [[25, 25], [50, 50], [75, 75]],
@@ -9,7 +9,7 @@ const PIP_LAYOUTS = {
   6: [[25, 22], [75, 22], [25, 50], [75, 50], [25, 78], [75, 78]],
 };
 
-const DieFace = ({ value, spinning, isBest, isBargain, size = 56 }) => {
+export const DieFace = ({ value, spinning, isBest, isBargain, size = 56 }) => {
   const pips = PIP_LAYOUTS[value] || PIP_LAYOUTS[1];
   
   const getOutcomeStyles = () => {
