@@ -1,4 +1,4 @@
-import PocketBase from 'pocketbase';
+import { crews as crewApi, getToken } from './api/client.js';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Shield, FileText, ChevronRight, ChevronDown, ChevronLeft, Target,
@@ -878,9 +878,9 @@ function ShareCrewModal({ crew, onClose }) {
 
 // ─── JOIN CREW MODAL ──────────────────────────────────────────────────────────
 
-function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
+function JoinCrewModal({ userId, characters, onJoined, onClose }) {
   const [code, setCode]       = useState('');
-  const [status, setStatus]   = useState('idle'); // idle | searching | found | sending | error
+  const [status, setStatus]   = useState('idle');
   const [foundCrew, setFoundCrew] = useState(null);
   const [selectedCharId, setSelectedCharId] = useState(characters[0]?.id || '');
   const [errorMsg, setErrorMsg] = useState('');
@@ -891,60 +891,18 @@ function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
     setFoundCrew(null);
     setErrorMsg('');
     try {
-      const searchTerm = code.trim().toUpperCase();
-      console.log('Searching for invite code:', searchTerm);
-      const results = await pb.collection('crews').getList(1, 50, {
-        '$autoCancel': false,
-      });
-      // Client-side match to avoid PocketBase filter syntax issues
-      const match = results.items.find(c =>
-        (c.inviteCode || '').toUpperCase() === searchTerm
-      );
-      console.log('Search results:', results.items.length, 'crews found, match:', match?.name);
-      if (!match) {
-        setErrorMsg(`No crew found with code "${searchTerm}". Check the code and try again.`);
-        setStatus('error');
-      } else {
-        const crew = match;
-        crew.templateId  = crew.templateID  || crew.templateId;
-        crew.characterId = crew.characterID || crew.characterId;
-        // Check if user is already a member
-        const memberList = Array.isArray(crew.memberId) ? crew.memberId : [];
-        if (memberList.includes(userId) || crew.ownerId === userId) {
-          setErrorMsg("You're already a member of this crew.");
-          setStatus('error');
-        } else {
-          setFoundCrew(crew);
-          setStatus('found');
-        }
-      }
+      const result = await crewApi.join(code.trim().toUpperCase());
+      setFoundCrew(result);
+      setStatus('sent');
+      setTimeout(() => onJoined(), 1200);
     } catch (err) {
-      console.error('Search failed:', err);
-      setErrorMsg(`Search failed: ${err.message || 'Check your connection and try again.'}`);
+      setErrorMsg(`No crew found with that code, or join failed: ${err.message || 'Try again.'}`);
       setStatus('error');
     }
   };
 
-  const sendRequest = async () => {
-    if (!foundCrew) return;
-    setStatus('sending');
-    const char = characters.find(c => c.id === selectedCharId);
-    // Use character name if available, otherwise fall back to user ID
-    const displayName = char?.name || pb?.authStore?.record?.username || pb?.authStore?.model?.username || userId || 'Unknown';
-    try {
-      await pb.collection('crewRequests').create({
-        crewId:        foundCrew.id,
-        requesterId:   userId,
-        requesterName: displayName,
-        status:        'pending',
-      }, { '$autoCancel': false });
-      setStatus('sent');
-    } catch (err) {
-      console.error('Join request failed:', err);
-      setErrorMsg(`Failed to send request: ${err.message || 'Try again.'}`);
-      setStatus('error');
-    }
-  };
+  // sendRequest is now merged into searchCode via crewApi.join
+  const sendRequest = () => {};
 
   const tmpl = foundCrew ? CREW_TEMPLATES[foundCrew.templateId] : null;
 
@@ -1024,67 +982,44 @@ function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
 
 // ─── MEMBERS PANEL (inside crew dashboard, owner only) ────────────────────────
 
-function MembersPanel({ crew, pb, userId, onUpdate }) {
+function MembersPanel({ crew, userId, onUpdate }) {
   const [requests, setRequests]     = useState([]);
   const [loading, setLoading]       = useState(true);
-  const [memberNames, setMemberNames] = useState({}); // userId -> display name
+  const [memberNames, setMemberNames] = useState({});
   const isOwner = crew.ownerId === userId;
 
   const loadRequests = () => {
-    if (!isOwner) { setLoading(false); return; }
-    setLoading(true);
-    pb.collection('crewRequests').getFullList({
-      filter: `crewId = "${crew.id}" && status = "pending"`,
-      '$autoCancel': false,
-    }).then(r => { setRequests(r); setLoading(false); })
-      .catch(err => { console.error('Failed to load requests:', err); setLoading(false); });
+    // TODO: wire to api/client crewRequests endpoint when backend is live
+    setLoading(false);
+    setRequests([]);
   };
 
   // Fetch character names for all members
   useEffect(() => {
     const memberList = Array.isArray(crew.memberId) ? crew.memberId : [];
     if (memberList.length === 0) return;
-    // Seed from stored display names first — these are set at approval time
+    // Use stored display names (set at approval time)
     const stored = crew.memberDisplayNames || {};
     setMemberNames(stored);
-    // Then fetch characters for any members not already in stored names
-    const missing = memberList.filter(id => !stored[id]);
-    if (missing.length === 0) return;
-    const userFilter = missing.map(id => `user="${id}"`).join(' || ');
-    pb.collection('characters').getFullList({
-      filter: userFilter,
-      '$autoCancel': false,
-    }).then(chars => {
-      const nameMap = { ...stored };
-      chars.forEach(c => {
-        if (!nameMap[c.user]) {
-          nameMap[c.user] = c.name + (c.playbook ? ` · ${c.playbook}` : '');
-        }
-      });
-      setMemberNames(nameMap);
-    }).catch(() => {});
+    setLoading(false);
   }, [crew.memberId]);
 
   useEffect(() => { loadRequests(); }, [crew.id]);
 
   const handleApprove = async (req) => {
     try {
-      await pb.collection('crewRequests').update(req.id, { status: 'approved' }, { '$autoCancel': false });
+      // TODO: wire to api/client when crewRequests endpoint is live
       const newMemberList = [...(crew.memberId || []), req.requesterId];
-      // Also store their display name so we don't need to re-fetch later
       const newDisplayNames = { ...(crew.memberDisplayNames || {}), [req.requesterId]: req.requesterName };
       onUpdate({ memberId: newMemberList, memberDisplayNames: newDisplayNames });
-      // Update local state immediately so the UI reflects it without waiting for PB
       setMemberNames(prev => ({ ...prev, [req.requesterId]: req.requesterName }));
       setRequests(prev => prev.filter(r => r.id !== req.id));
     } catch (err) { console.error('Approve failed:', err); }
   };
 
   const handleDeny = async (req) => {
-    try {
-      await pb.collection('crewRequests').update(req.id, { status: 'denied' }, { '$autoCancel': false });
-      setRequests(prev => prev.filter(r => r.id !== req.id));
-    } catch (err) { console.error('Deny failed:', err); }
+    // TODO: wire to api/client when crewRequests endpoint is live
+    setRequests(prev => prev.filter(r => r.id !== req.id));
   };
 
   const handleKick = async (memberId) => {
@@ -1170,7 +1105,7 @@ function MembersPanel({ crew, pb, userId, onUpdate }) {
   );
 }
 
-function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb, userId }) {
+function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, userId }) {
   const [contentTab, setContentTab]                   = useState('claims');
   const [selectedNodeId, setSelectedNodeId]           = useState(null);
   const [showWardBoss, setShowWardBoss]               = useState(false);
@@ -1680,7 +1615,7 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
         {/* MEMBERS TAB */}
         {contentTab === 'members' && (
           <div className="p-4">
-            <MembersPanel crew={crew} pb={pb} userId={userId} onUpdate={onUpdate} />
+            <MembersPanel crew={crew} userId={userId} onUpdate={onUpdate} />
           </div>
         )}
 
@@ -1801,14 +1736,12 @@ const CrewManager = ({
   characters: charactersProp = [],
   setCharacters = () => {},
   preselectedCharId = null,
-  pbInstance = null,
   userId = null,
 }) => {
   const characters = charactersProp;
 
-  // Use the passed pbInstance, or fall back to a local one
-  // Always use the pbInstance passed from App.jsx to avoid auto-cancellation conflicts
-  const pb = pbInstance;
+  const debounceTimer = useRef(null);
+  const pendingUpdates = useRef({});
 
   const [crews, setCrews]           = useState([]);
   const [activeCrewId, setActiveCrewId] = useState(null);
@@ -1816,41 +1749,12 @@ const CrewManager = ({
   const [loading, setLoading]       = useState(true);
   const [showJoin, setShowJoin]     = useState(false);
 
-  // Guard: if no pbInstance was passed, show an error
-  if (!pb) {
-    console.error('CrewManager: pbInstance prop is required');
-  }
-
-  const debounceTimer = useRef(null);
-  const pendingUpdates = useRef({});
-
-  // Load crews from PocketBase on mount
+  // Load crews from api/client on mount
   useEffect(() => {
     const loadCrews = async () => {
       try {
-        const records = await pb.collection('crews').getFullList({ sort: '-created', '$autoCancel': false });
-        // Normalize PocketBase field names (templateID -> templateId etc.) for internal use
-        const normalized = records.map(r => ({
-          ...r,
-          templateId:  r.templateID  || r.templateId,
-          characterId: r.characterID || r.characterId,
-          inviteCode:  r.inviteCode  || '',
-          ownerId:     r.ownerId     || '',
-          memberId:    Array.isArray(r.memberId) ? r.memberId : [],
-          memberDisplayNames: (typeof r.memberDisplayNames === 'object' && r.memberDisplayNames !== null) ? r.memberDisplayNames : {},
-        }));
-
-        // Auto-generate invite codes for any existing crews that don't have one
-        const needsCodes = normalized.filter(r => !r.inviteCode);
-        for (const crew of needsCodes) {
-          const code = generateInviteCode();
-          try {
-            await pb.collection('crews').update(crew.id, { inviteCode: code }, { '$autoCancel': false });
-            crew.inviteCode = code;
-          } catch (e) { /* non-critical, skip */ }
-        }
-
-        setCrews(normalized);
+        const records = await crewApi.list();
+        setCrews(records);
       } catch (err) {
         console.error('Could not load crews:', err);
       } finally {
@@ -1862,16 +1766,13 @@ const CrewManager = ({
 
   const activeCrew = crews.find(c => c.id === activeCrewId);
 
-  // Create new crew in PocketBase
+  // Create new crew via api/client
   const handleCreated = async (crewTemplate) => {
     try {
-      const finalUserId = userId || pb.authStore.record?.id || pb.authStore.model?.id;
-      if (!finalUserId) { console.error('No user ID found'); return; }
-      // Build a clean payload - PocketBase JSON fields need plain objects
       const payload = {
         name:           crewTemplate.name,
-        templateID:     crewTemplate.templateId,
-        characterID:    crewTemplate.characterId,
+        templateId:     crewTemplate.templateId,
+        characterId:    crewTemplate.characterId,
         tier:           crewTemplate.tier || 0,
         rep:            crewTemplate.rep || 0,
         heat:           crewTemplate.heat || 0,
@@ -1884,31 +1785,17 @@ const CrewManager = ({
         utopianCircle:  crewTemplate.utopianCircle || '',
         utopianVision:  crewTemplate.utopianVision || '',
         inviteCode:     crewTemplate.inviteCode || generateInviteCode(),
-        ownerId:        finalUserId,
-        memberId:       [],
-        memberDisplayNames: {},
-        user:           finalUserId,
       };
-      const record = await pb.collection('crews').create(payload, { '$autoCancel': false });
-      // Fully normalize the returned record so local state matches what we show in UI
-      const normalizedRecord = {
-        ...record,
-        templateId:  record.templateID  || record.templateId,
-        characterId: record.characterID || record.characterId,
-        inviteCode:  record.inviteCode  || payload.inviteCode,
-        ownerId:     record.ownerId     || finalUserId,
-        memberId:    record.memberId    || [],
-        memberDisplayNames: record.memberDisplayNames || {},
-      };
-      setCrews(prev => [...prev, normalizedRecord]);
-      setActiveCrewId(normalizedRecord.id);
+      const record = await crewApi.create(payload);
+      setCrews(prev => [...prev, record]);
+      setActiveCrewId(record.id);
       setView('dashboard');
     } catch (err) {
       console.error('Failed to create crew:', err);
     }
   };
 
-  // Update crew — debounced sync to PocketBase (same pattern as CharacterManager)
+  // Update crew — debounced sync to api/client
   const handleUpdate = (updates) => {
     setCrews(prev => prev.map(c => c.id === activeCrewId ? { ...c, ...updates } : c));
     if (activeCrewId) {
@@ -1916,16 +1803,12 @@ const CrewManager = ({
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       const currentId = activeCrewId;
       debounceTimer.current = setTimeout(async () => {
-        const rawPayload = { ...pendingUpdates.current };
+        const payload = { ...pendingUpdates.current };
         pendingUpdates.current = {};
-        // Rename camelCase fields to match PocketBase column names
-        const payload = { ...rawPayload };
-        if ('templateId'  in payload) { payload.templateID  = payload.templateId;  delete payload.templateId; }
-        if ('characterId' in payload) { payload.characterID = payload.characterId; delete payload.characterId; }
         try {
-          await pb.collection('crews').update(currentId, payload, { '$autoCancel': false });
+          await crewApi.update(currentId, payload);
         } catch (err) {
-          console.error('Failed to sync crew to PocketBase:', err);
+          console.error('Failed to sync crew:', err);
         }
       }, 750);
     }
@@ -1938,7 +1821,7 @@ const CrewManager = ({
   const handleDelete = async (id) => {
     if (!confirm('Permanently disband this crew?')) return;
     try {
-      await pb.collection('crews').delete(id, { '$autoCancel': false });
+      await crewApi.remove(id);
       setCrews(prev => prev.filter(c => c.id !== id));
       if (activeCrewId === id) { setActiveCrewId(null); setView('roster'); }
     } catch (err) {
@@ -1951,17 +1834,15 @@ const CrewManager = ({
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
   }, []);
 
-  const currentUserId = userId || pb?.authStore.record?.id || pb?.authStore.model?.id;
+  const currentUserId = userId;
   const filteredCrews = crews.filter(c => {
-    // Show if user is owner or approved member
-    const isMember = (c.memberId || []).includes(currentUserId) || c.ownerId === currentUserId || c.user === currentUserId;
+    const isMember = (c.memberId || []).includes(currentUserId) || c.ownerId === currentUserId || c.userId === currentUserId;
     if (preselectedCharId) return isMember && c.characterId === preselectedCharId;
     return isMember;
   });
 
   if (view === 'dashboard' && activeCrew) {
-    const currentUserId = userId || pb?.authStore.record?.id || pb?.authStore.model?.id;
-    return <CrewDashboard crew={activeCrew} characters={characters} onBack={() => { setView('roster'); setActiveCrewId(null); }} onUpdate={handleUpdate} onTransferChar={handleTransferChar} pb={pb} userId={currentUserId} />;
+    return <CrewDashboard crew={activeCrew} characters={characters} onBack={() => { setView('roster'); setActiveCrewId(null); }} onUpdate={handleUpdate} onTransferChar={handleTransferChar} userId={currentUserId} />;
   }
   if (view === 'create') {
     return <CrewCreation characters={characters} preselectedCharId={preselectedCharId} onCreated={handleCreated} onCancel={() => setView('roster')} />;
@@ -1993,9 +1874,8 @@ const CrewManager = ({
         <UserPlus size={15} /> Join a Crew with Code
       </button>
 
-      {showJoin && pb && (
+      {showJoin && (
         <JoinCrewModal
-          pb={pb}
           userId={currentUserId}
           characters={characters}
           onJoined={() => { setShowJoin(false); }}

@@ -4,8 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Use relative base so assets are found within the 'blades-app' folder
-  base: './', 
+  // '/' works correctly on Cloudflare Pages (and any standard host).
+  // './'' (relative) breaks module script MIME types when not at root.
+  base: '/',
   plugins: [
     react(),
     VitePWA({

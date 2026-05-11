@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import PocketBase from 'pocketbase';
+import { characters as charApi } from './api/client.js';
 import {
   ChevronDown, ChevronRight, Swords, Shield, Dices, Moon, User,
   Menu, X, Users, Target, Globe, Search, BookOpen, Package, Star, Skull, Settings, Zap,
@@ -1227,13 +1227,10 @@ const CombatScreen = ({ activeChar, updateChar, updateNested, isB68, traumaName 
 // =====================
 const CharacterManager = ({ 
   userId, 
-  pbInstance, 
   characters = [], 
   setCharacters = () => {}, 
   setModal = () => {} 
 }) => {
-  // Always use the pbInstance passed from App.jsx — it carries the live authenticated authStore.
-  const activePb = pbInstance;
   const [activeCharId, setActiveCharId] = useState(null);
   const [viewMode, setViewMode] = useState("sheet");
   const [activeSection, setActiveSection] = useState("abilities");
@@ -1256,26 +1253,13 @@ const CharacterManager = ({
   const avatarInputRef = useRef(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
-  // Build the PocketBase thumb URL for a character's avatar
-  const getAvatarUrl = (char) => {
-    if (!char?.avatar) return null;
-    return `${activePb.baseUrl}/api/files/characters/${char.id}/${char.avatar}?thumb=250x250`;
-  };
+  // Avatar URL — will use Cloudflare R2 or similar in future
+  // For now return null (avatars deferred to post-backend-migration)
+  const getAvatarUrl = (_char) => null;
 
-  // Upload a new avatar file for a character
-  const uploadAvatar = async (charId, file) => {
-    if (!file) return;
-    setAvatarUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('avatar', file);
-      const updated = await activePb.collection('characters').update(charId, fd, { '$autoCancel': false });
-      setCharacters(prev => prev.map(c => c.id === charId ? updated : c));
-    } catch (err) {
-      console.error('Avatar upload failed:', err);
-    } finally {
-      setAvatarUploading(false);
-    }
+  // Avatar upload placeholder — wired to api/client in next pass
+  const uploadAvatar = async (_charId, _file) => {
+    console.info('Avatar upload: deferred until Cloudflare backend is live');
   };
 
   // Detect mobile
@@ -1308,17 +1292,17 @@ const CharacterManager = ({
   useEffect(() => {
     const loadScoundrels = async () => {
       try {
-        const records = await activePb.collection('characters').getFullList({ sort: '-created', '$autoCancel': false });
+        const records = await charApi.list();
         setCharacters(records);
       } catch (err) {
-        console.error("Could not load characters:", err);
+        console.error('Could not load characters:', err);
         setLoadError(err.message || 'Could not connect to the server.');
       } finally {
         setLoading(false);
       }
     };
     loadScoundrels();
-  }, [setCharacters, activePb]);
+  }, [setCharacters]);
 
   const updateChar = (updates) => {
     setCharacters(prev => prev.map(c => c.id === activeCharId ? { ...c, ...updates } : c));
@@ -1330,9 +1314,9 @@ const CharacterManager = ({
         const payload = { ...pendingUpdates.current };
         pendingUpdates.current = {};
         try {
-          await activePb.collection('characters').update(currentId, payload, { '$autoCancel': false });
+          await charApi.update(currentId, payload);
         } catch (err) {
-          console.error("Failed to sync to NAS:", err);
+          console.error('Failed to sync character:', err);
         }
       }, 750);
     }
@@ -1347,33 +1331,29 @@ const CharacterManager = ({
     setIsManifesting(true);
     const template = defaultChar(newGame, newPlaybook);
     try {
-      // pbInstance is already authenticated via App.jsx — no manual auth re-save needed.
-      const finalUserId = userId || activePb.authStore.record?.id || activePb.authStore.model?.id;
-      if (!finalUserId) { console.error("No valid user ID found."); setIsManifesting(false); return; }
-      const newRecord = await activePb.collection('characters').create({ ...template, user: finalUserId }, { '$autoCancel': false });
+      const newRecord = await charApi.create({ ...template, userId });
       setCharacters([...characters, newRecord]);
       setActiveCharId(newRecord.id);
       setIsCreating(false);
     } catch (err) {
-      console.error("Failed to manifest on NAS:", err);
+      console.error('Failed to create character:', err);
     } finally {
       setIsManifesting(false);
     }
   };
 
   const deleteChar = async (id) => {
-    if (confirm("Are you sure you want to permanently delete this scoundrel?")) {
+    if (confirm('Are you sure you want to permanently delete this scoundrel?')) {
       try {
-        await activePb.collection('characters').delete(id, { '$autoCancel': false });
+        await charApi.remove(id);
         setCharacters(prev => prev.filter(c => c.id !== id));
         if (activeCharId === id) setActiveCharId(null);
       } catch (err) {
-        console.error("Failed to delete on NAS:", err);
+        console.error('Failed to delete character:', err);
       }
     }
   };
 
-  // Show dagger spinner while fetching characters, or error state if it failed
   if (loading || loadError) {
     return (
       <LoadingDagger
@@ -1382,7 +1362,7 @@ const CharacterManager = ({
         onRetry={loadError ? () => {
           setLoading(true);
           setLoadError(null);
-          activePb.collection('characters').getFullList({ sort: '-created', '$autoCancel': false })
+          charApi.list()
             .then(records => setCharacters(records))
             .catch(err => setLoadError(err.message || 'Could not connect to the server.'))
             .finally(() => setLoading(false));
@@ -1586,9 +1566,7 @@ const CharacterManager = ({
     }
   };
 
-  const charBgUrl = activeChar?.avatar
-    ? `${activePb.baseUrl}/api/files/characters/${activeChar.id}/${activeChar.avatar}?thumb=1200x0`
-    : null;
+  const charBgUrl = null; // Avatar backgrounds deferred until Cloudflare storage is live
 
   return (
     <div className={`animate-fade-in max-w-5xl mx-auto pb-28 relative ${charBgUrl ? 'has-char-bg' : ''}`}>
