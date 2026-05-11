@@ -1749,14 +1749,18 @@ const CrewManager = ({
   const [loading, setLoading]       = useState(true);
   const [showJoin, setShowJoin]     = useState(false);
 
-  // Load crews from api/client on mount
+  // Load crews from api/client on mount, fall back to localStorage
   useEffect(() => {
     const loadCrews = async () => {
       try {
         const records = await crewApi.list();
         setCrews(records);
       } catch (err) {
-        console.error('Could not load crews:', err);
+        console.error('API unavailable, falling back to localStorage:', err);
+        try {
+          const local = JSON.parse(localStorage.getItem('crews_v2') || '[]');
+          setCrews(local);
+        } catch { setCrews([]); }
       } finally {
         setLoading(false);
       }

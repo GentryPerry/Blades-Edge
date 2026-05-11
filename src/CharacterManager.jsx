@@ -1290,13 +1290,18 @@ const CharacterManager = ({
   }, [searchQuery, activeCharId]);
 
   useEffect(() => {
+    // If characters were passed as a prop, use them — skip the fetch
+    if (characters.length > 0) { setLoading(false); return; }
     const loadScoundrels = async () => {
       try {
         const records = await charApi.list();
         setCharacters(records);
       } catch (err) {
-        console.error('Could not load characters:', err);
-        setLoadError(err.message || 'Could not connect to the server.');
+        console.error('API unavailable, falling back to localStorage:', err);
+        try {
+          const local = JSON.parse(localStorage.getItem('characters') || '[]');
+          setCharacters(local);
+        } catch { setCharacters([]); }
       } finally {
         setLoading(false);
       }
@@ -1354,20 +1359,9 @@ const CharacterManager = ({
     }
   };
 
-  if (loading || loadError) {
+  if (loading) {
     return (
-      <LoadingDagger
-        message="Summoning scoundrels..."
-        error={loadError}
-        onRetry={loadError ? () => {
-          setLoading(true);
-          setLoadError(null);
-          charApi.list()
-            .then(records => setCharacters(records))
-            .catch(err => setLoadError(err.message || 'Could not connect to the server.'))
-            .finally(() => setLoading(false));
-        } : null}
-      />
+      <LoadingDagger message="Summoning scoundrels..." />
     );
   }
 
