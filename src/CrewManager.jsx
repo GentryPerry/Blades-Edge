@@ -368,60 +368,11 @@ const defaultCrew = (name, templateId, characterId, ownerId) => {
     inviteCode: generateInviteCode(),
     ownerId: ownerId || '',
     memberId: [],
+    memberDisplayNames: {},
   };
 };
 
 // ─── MINI COMPONENTS ─────────────────────────────────────────────────────────
-
-const CREW_STYLES = `
-@keyframes daggerSpin {
-  0%   { transform: rotate(0deg)   scale(1);    filter: drop-shadow(0 0 6px rgba(239,68,68,0.0)); }
-  25%  { transform: rotate(90deg)  scale(1.08); filter: drop-shadow(0 0 10px rgba(239,68,68,0.5)); }
-  50%  { transform: rotate(180deg) scale(1);    filter: drop-shadow(0 0 6px rgba(239,68,68,0.0)); }
-  75%  { transform: rotate(270deg) scale(1.08); filter: drop-shadow(0 0 10px rgba(239,68,68,0.5)); }
-  100% { transform: rotate(360deg) scale(1);    filter: drop-shadow(0 0 6px rgba(239,68,68,0.0)); }
-}
-@keyframes daggerPulse {
-  0%, 100% { opacity: 0.15; transform: scale(1); }
-  50%       { opacity: 0.35; transform: scale(1.3); }
-}
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.dagger-spin { animation: daggerSpin 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-.dagger-glow { animation: daggerPulse 1.4s ease-in-out infinite; }
-.animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
-`;
-
-const LoadingDagger = ({ message = "Loading...", error = null, onRetry = null }) => (
-  <div className="flex flex-col items-center justify-center py-32 animate-fade-in select-none" style={{ minHeight: 320 }}>
-    <style>{CREW_STYLES}</style>
-    <div className="relative flex items-center justify-center mb-6" style={{ width: 96, height: 96 }}>
-      <div className="dagger-glow absolute rounded-full"
-        style={{ width: 80, height: 80, background: 'radial-gradient(circle, rgba(239,68,68,0.4) 0%, transparent 70%)' }} />
-      {error ? (
-        <span className="text-5xl">⚠️</span>
-      ) : (
-        <img
-          src="/blades-icon.png"
-          alt="Loading"
-          className="dagger-spin relative z-10"
-          style={{ width: 56, height: 56, objectFit: 'contain' }}
-        />
-      )}
-    </div>
-    <p className="text-xs font-black uppercase tracking-widest text-neutral-500 mb-1">
-      {error ? 'Connection Failed' : message}
-    </p>
-    {error && (
-      <p className="text-[11px] text-neutral-600 mb-4 text-center max-w-xs">{error}</p>
-    )}
-    {error && onRetry && (
-      <button onClick={onRetry}
-        className="mt-2 px-4 py-2 text-xs font-bold uppercase tracking-widest border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500 rounded-lg transition-colors">
-        Try Again
-      </button>
-    )}
-  </div>
-);
 
 const Tracker = ({ value, max, onChange, color = 'bg-red-600 border-red-600' }) => (
   <div className="flex gap-1 items-center flex-wrap">
@@ -436,7 +387,7 @@ const ClockSVG = ({ segments, filled, size = 48, fillColor = '#dc2626' }) => {
   const r = 44, cx = 50, cy = 50;
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className="cursor-pointer hover:scale-105 transition-transform">
-      <circle cx="50" cy="50" r="44" fill="#0f0f11" stroke="#27272a" strokeWidth="2" />
+      <circle cx="50" cy="50" r="44" fill="var(--bg1)" stroke="var(--border)" strokeWidth="2" />
       {Array.from({ length: segments }).map((_, i) => {
         const a1 = (i * 360 / segments - 90) * Math.PI / 180;
         const a2 = ((i + 1) * 360 / segments - 90) * Math.PI / 180;
@@ -445,7 +396,7 @@ const ClockSVG = ({ segments, filled, size = 48, fillColor = '#dc2626' }) => {
         const large = (360 / segments) > 180 ? 1 : 0;
         return (
           <path key={i} d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`}
-            fill={i < filled ? fillColor : 'transparent'} stroke="#27272a" strokeWidth="2" />
+            fill={i < filled ? fillColor : 'transparent'} stroke="var(--border)" strokeWidth="2" />
         );
       })}
     </svg>
@@ -457,7 +408,7 @@ function CollapsibleSection({ title, icon, count, defaultOpen = true, children, 
   return (
     <div className="border border-neutral-800/60 rounded-xl">
       <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-[#09090b] hover:bg-neutral-800/20 transition-colors">
+        className="w-full flex items-center justify-between px-3 py-2 bg-[var(--bg0)] hover:bg-neutral-800/20 transition-colors">
         <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-neutral-500">
           {icon} {title}
           {count > 0 && <span className="ml-1 px-1.5 py-0.5 bg-neutral-800 rounded-full text-[9px] text-neutral-400">{count}</span>}
@@ -515,13 +466,13 @@ function ClaimsGrid({ claims, onNodeSelect, selectedNodeId, accentColor }) {
     <div className="relative w-full" style={{ aspectRatio: "1/1", maxWidth: "min(100%, 600px)" }}>
       {/* Subtle grid background */}
       <div className="absolute inset-0 pointer-events-none"
-        style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '20% 20%' }} />
+        style={{ backgroundImage: 'linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px)', backgroundSize: '20% 20%' }} />
 
       <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
         {lines.map(l => (
           <line key={l.id}
             x1={`${l.x1}%`} y1={`${l.y1}%`} x2={`${l.x2}%`} y2={`${l.y2}%`}
-            stroke={l.active ? accentColor : '#2a2a2a'}
+            stroke={l.active ? accentColor : 'var(--border)'}
             strokeWidth={l.active ? '3' : '1.5'}
             strokeDasharray={l.active ? 'none' : '4,4'}
             className="transition-all duration-300"
@@ -567,11 +518,11 @@ function ClaimsGrid({ claims, onNodeSelect, selectedNodeId, accentColor }) {
             }}>
             <button onClick={() => handleClick(claim.id)}
               className={`w-full h-full flex flex-col items-center justify-center rounded-lg border-2 transition-all shadow-lg
-                ${isSel ? 'ring-2 ring-offset-1 ring-offset-[#09090b]' : ''}
+                ${isSel ? 'ring-2 ring-offset-1 ring-offset-[var(--bg0)]' : ''}
                 ${isOwned ? 'border-2' : isAvail ? 'border-neutral-500 hover:border-neutral-200' : 'border-neutral-800 hover:border-neutral-700'}
                 ${claim.special && isOwned ? 'shadow-[0_0_12px_rgba(255,255,255,0.1)]' : ''}`}
               style={{
-                backgroundColor: 'rgba(9,9,11,0.96)',
+                backgroundColor: 'var(--bg0)',
                 borderColor: isOwned ? accentColor : undefined,
                 boxShadow: isOwned ? `inset 0 0 10px ${accentColor}18` : undefined,
                 ringColor: isSel ? accentColor : undefined,
@@ -616,7 +567,7 @@ function NodeModal({ node, onClose, onUpdate, accentColor }) {
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className="bg-[#111113] border border-neutral-700 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[85vh] animate-scale-in" onClick={e => e.stopPropagation()}>
+      <div className="bg-[var(--bg2)] border border-neutral-700 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[85vh] animate-scale-in" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-neutral-800 flex justify-between items-center" style={{ borderTopColor: accentColor, borderTopWidth: 3 }}>
           <div className="flex items-center gap-2">
             {node.special && <Star size={14} style={{ color: accentColor }} fill="currentColor" />}
@@ -629,7 +580,7 @@ function NodeModal({ node, onClose, onUpdate, accentColor }) {
           <div className="flex justify-between items-center">
             <div className="flex flex-col gap-1">
               <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border w-fit ${
-                node.status === 'owned' ? 'border-neutral-700 text-neutral-300' : node.status === 'available' ? 'bg-neutral-800 border-neutral-500 text-neutral-200' : 'bg-[#09090b] border-neutral-800 text-neutral-600'}`}
+                node.status === 'owned' ? 'border-neutral-700 text-neutral-300' : node.status === 'available' ? 'bg-neutral-800 border-neutral-500 text-neutral-200' : 'bg-[var(--bg0)] border-neutral-800 text-neutral-600'}`}
                 style={node.status === 'owned' ? { borderColor: accentColor + '80', color: accentColor, background: accentColor + '15' } : {}}>
                 {node.status}
               </span>
@@ -658,13 +609,13 @@ function NodeModal({ node, onClose, onUpdate, accentColor }) {
           </div>
           <div>
             <span className="text-[10px] uppercase font-black tracking-widest text-neutral-500 block mb-1.5">Benefit</span>
-            <p className="text-neutral-300 bg-[#09090b] p-3 border border-neutral-800 rounded-xl text-sm leading-relaxed">{node.benefit}</p>
+            <p className="text-neutral-300 bg-[var(--bg0)] p-3 border border-neutral-800 rounded-xl text-sm leading-relaxed">{node.benefit}</p>
           </div>
           <div>
             <span className="text-[10px] uppercase font-black tracking-widest text-neutral-500 block mb-1.5">Notes</span>
             <textarea value={notes} onChange={e => setNotes(e.target.value)}
               className="w-full h-24 border border-neutral-800 rounded-xl p-3 text-xs outline-none resize-none hide-scroll"
-              style={{ background: '#09090b', color: '#d4d4d4', colorScheme: 'dark' }}
+              style={{ background: 'var(--bg0)', color: 'var(--text-dim)', colorScheme: 'inherit' }}
               placeholder="Track NPCs, heat, operational details..." />
           </div>
         </div>
@@ -686,7 +637,7 @@ function WardBossModal({ wardBoss, onUpdate, onClose }) {
   const upd = (k, v) => setLocal(p => ({ ...p, [k]: v }));
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="bg-[#111113] border border-neutral-700 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] animate-scale-in" onClick={e => e.stopPropagation()}>
+      <div className="bg-[var(--bg2)] border border-neutral-700 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] animate-scale-in" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
           <div className="flex items-center gap-2"><Crown size={16} className="text-amber-500" /><h3 className="font-black uppercase tracking-widest text-neutral-100 text-sm">Ward Boss</h3></div>
           <button onClick={onClose} className="text-neutral-500 hover:text-white"><X size={18} /></button>
@@ -697,7 +648,7 @@ function WardBossModal({ wardBoss, onUpdate, onClose }) {
               <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-1.5">Name / Faction</label>
               <input value={local.name} onChange={e => upd('name', e.target.value)}
                 className="w-full border border-neutral-800 rounded-xl px-3 py-2 text-sm outline-none focus:border-amber-900/60"
-                style={{ background: '#09090b', color: '#e5e5e5', colorScheme: 'dark' }}
+                style={{ background: 'var(--bg0)', color: 'var(--text)', colorScheme: 'inherit' }}
                 placeholder="e.g. The Lampblacks" />
             </div>
             <div>
@@ -709,7 +660,7 @@ function WardBossModal({ wardBoss, onUpdate, onClose }) {
               </div>
             </div>
           </div>
-          <div className="bg-[#09090b] border border-neutral-800 rounded-xl p-4">
+          <div className="bg-[var(--bg0)] border border-neutral-800 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500 block">Anger Clock</span>
@@ -728,7 +679,7 @@ function WardBossModal({ wardBoss, onUpdate, onClose }) {
             <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-1.5">Notes</label>
             <textarea value={local.notes} onChange={e => upd('notes', e.target.value)}
               className="w-full h-24 border border-neutral-800 rounded-xl p-3 text-xs outline-none resize-none hide-scroll"
-              style={{ background: '#09090b', color: '#d4d4d4', colorScheme: 'dark' }}
+              style={{ background: 'var(--bg0)', color: 'var(--text-dim)', colorScheme: 'inherit' }}
               placeholder="Relationship, demands, reprisals, contacts..." />
           </div>
           <div className="bg-amber-950/20 border border-amber-900/30 rounded-xl p-3 text-xs text-neutral-400 leading-relaxed">
@@ -763,7 +714,7 @@ function SecondaryScoreModal({ cohort, onClose }) {
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className="bg-[#111113] border border-neutral-700 rounded-2xl w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
+      <div className="bg-[var(--bg2)] border border-neutral-700 rounded-2xl w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
           <div className="flex items-center gap-2"><Dices size={15} className="text-neutral-500" /><h3 className="font-black uppercase tracking-widest text-neutral-100 text-sm">Secondary Score</h3></div>
           <button onClick={onClose} className="text-neutral-500 hover:text-white"><X size={18} /></button>
@@ -777,7 +728,7 @@ function SecondaryScoreModal({ cohort, onClose }) {
             <>
               <div className="space-y-1.5">
                 {SECONDARY_OUTCOMES.map(o => (
-                  <div key={o.range} className={`flex gap-3 items-start text-xs bg-[#09090b] border ${o.border} rounded-xl p-2.5`}>
+                  <div key={o.range} className={`flex gap-3 items-start text-xs bg-[var(--bg0)] border ${o.border} rounded-xl p-2.5`}>
                     <span className={`font-black shrink-0 w-8 ${o.color}`}>{o.range}</span>
                     <span className="text-neutral-400 leading-snug">{o.desc}</span>
                   </div>
@@ -792,13 +743,13 @@ function SecondaryScoreModal({ cohort, onClose }) {
               <div className="flex gap-2 justify-center flex-wrap">
                 {result.dice.map((d, i) => (
                   <div key={i} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center font-black text-lg
-                    ${d === result.best ? `bg-[#0f0f11] text-white` : 'bg-[#09090b] border-neutral-700 text-neutral-500'}`}
+                    ${d === result.best ? `bg-[var(--bg1)] text-white` : 'bg-[var(--bg0)] border-neutral-700 text-neutral-500'}`}
                     style={d === result.best ? { borderColor: result.outcome.color.replace('text-', '').replace('-400', '') } : {}}>
                     {d}
                   </div>
                 ))}
               </div>
-              <div className={`text-center p-4 bg-[#09090b] rounded-xl border ${result.outcome.border}`}>
+              <div className={`text-center p-4 bg-[var(--bg0)] rounded-xl border ${result.outcome.border}`}>
                 <span className={`font-black text-xl uppercase tracking-widest ${result.outcome.color}`}>{result.outcome.label}</span>
                 <p className="text-neutral-400 text-xs mt-2 leading-relaxed">{result.outcome.desc}</p>
               </div>
@@ -828,7 +779,7 @@ function ActiveBenefitsChips({ claimBenefits, upgradeBenefits, upgradeDescs = {}
 
   return (
     <div className="border border-neutral-800/60 rounded-xl">
-      <div className="px-3 py-2 bg-[#09090b] rounded-t-xl flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-neutral-500 border-b border-neutral-800/60">
+      <div className="px-3 py-2 bg-[var(--bg0)] rounded-t-xl flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-neutral-500 border-b border-neutral-800/60">
         <Zap size={11} className="text-neutral-500" /> Active Benefits
         <span className="ml-1 px-1.5 py-0.5 bg-neutral-800 rounded-full text-[9px] text-neutral-400">{allBenefits.length}</span>
       </div>
@@ -845,8 +796,8 @@ function ActiveBenefitsChips({ claimBenefits, upgradeBenefits, upgradeDescs = {}
                   onClick={() => setExpanded(isOpen ? null : b.id)}
                   className="px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-all"
                   style={{
-                    borderColor: isOpen ? accentColor : '#303030',
-                    background: isOpen ? accentColor + '18' : '#111113',
+                    borderColor: isOpen ? accentColor : 'var(--border)',
+                    background: isOpen ? accentColor + '18' : 'var(--bg2)',
                     color: isOpen ? accentColor : '#737373',
                   }}>
                   {b.special ? '★ ' : ''}{b.label}
@@ -891,7 +842,7 @@ function ShareCrewModal({ crew, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
       style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="bg-[#111113] border border-neutral-700 rounded-2xl w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
+      <div className="bg-[var(--bg2)] border border-neutral-700 rounded-2xl w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Share2 size={15} className="text-neutral-400" />
@@ -904,7 +855,7 @@ function ShareCrewModal({ crew, onClose }) {
             Share this code with players you want to invite. They can enter it from the Crews screen to request to join.
           </p>
           <div className="flex items-center gap-3">
-            <div className="flex-1 bg-[#09090b] border border-neutral-700 rounded-xl px-4 py-3 text-center">
+            <div className="flex-1 bg-[var(--bg0)] border border-neutral-700 rounded-xl px-4 py-3 text-center">
               <span className="font-black text-2xl tracking-widest text-white">{code}</span>
             </div>
             <button onClick={handleCopy}
@@ -916,7 +867,7 @@ function ShareCrewModal({ crew, onClose }) {
               </span>
             </button>
           </div>
-          <div className="bg-[#09090b] border border-neutral-800 rounded-xl p-3 text-xs text-neutral-500 leading-relaxed">
+          <div className="bg-[var(--bg0)] border border-neutral-800 rounded-xl p-3 text-xs text-neutral-500 leading-relaxed">
             Once a player requests to join, you'll see their request in this crew's Members section and can approve or deny it.
           </div>
         </div>
@@ -940,19 +891,25 @@ function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
     setFoundCrew(null);
     setErrorMsg('');
     try {
-      const results = await pb.collection('crews').getList(1, 1, {
-        filter: `inviteCode = "${code.trim().toUpperCase()}"`,
+      const searchTerm = code.trim().toUpperCase();
+      console.log('Searching for invite code:', searchTerm);
+      const results = await pb.collection('crews').getList(1, 50, {
         '$autoCancel': false,
       });
-      if (results.items.length === 0) {
-        setErrorMsg('No crew found with that code.');
+      // Client-side match to avoid PocketBase filter syntax issues
+      const match = results.items.find(c =>
+        (c.inviteCode || '').toUpperCase() === searchTerm
+      );
+      console.log('Search results:', results.items.length, 'crews found, match:', match?.name);
+      if (!match) {
+        setErrorMsg(`No crew found with code "${searchTerm}". Check the code and try again.`);
         setStatus('error');
       } else {
-        const crew = results.items[0];
+        const crew = match;
         crew.templateId  = crew.templateID  || crew.templateId;
         crew.characterId = crew.characterID || crew.characterId;
         // Check if user is already a member
-        const memberList = crew.memberId || [];
+        const memberList = Array.isArray(crew.memberId) ? crew.memberId : [];
         if (memberList.includes(userId) || crew.ownerId === userId) {
           setErrorMsg("You're already a member of this crew.");
           setStatus('error');
@@ -962,25 +919,29 @@ function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
         }
       }
     } catch (err) {
-      setErrorMsg('Something went wrong. Try again.');
+      console.error('Search failed:', err);
+      setErrorMsg(`Search failed: ${err.message || 'Check your connection and try again.'}`);
       setStatus('error');
     }
   };
 
   const sendRequest = async () => {
-    if (!foundCrew || !selectedCharId) return;
+    if (!foundCrew) return;
     setStatus('sending');
     const char = characters.find(c => c.id === selectedCharId);
+    // Use character name if available, otherwise fall back to user ID
+    const displayName = char?.name || pb?.authStore?.record?.username || pb?.authStore?.model?.username || userId || 'Unknown';
     try {
       await pb.collection('crewRequests').create({
         crewId:        foundCrew.id,
         requesterId:   userId,
-        requesterName: char?.name || 'Unknown',
+        requesterName: displayName,
         status:        'pending',
       }, { '$autoCancel': false });
       setStatus('sent');
     } catch (err) {
-      setErrorMsg('Failed to send request. Try again.');
+      console.error('Join request failed:', err);
+      setErrorMsg(`Failed to send request: ${err.message || 'Try again.'}`);
       setStatus('error');
     }
   };
@@ -990,7 +951,7 @@ function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
       style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="bg-[#111113] border border-neutral-700 rounded-2xl w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
+      <div className="bg-[var(--bg2)] border border-neutral-700 rounded-2xl w-full max-w-sm shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <UserPlus size={15} className="text-neutral-400" />
@@ -1015,7 +976,7 @@ function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
                 onKeyDown={e => e.key === 'Enter' && searchCode()}
                 placeholder="CREW CODE"
                 className="flex-1 border border-neutral-700 rounded-xl px-4 py-3 font-black text-lg tracking-widest text-center outline-none"
-                style={{ background: '#09090b', color: '#e5e5e5', colorScheme: 'dark', letterSpacing: '0.15em' }}
+                style={{ background: 'var(--bg0)', color: 'var(--text)', colorScheme: 'inherit', letterSpacing: '0.15em' }}
               />
               <button onClick={searchCode} disabled={status === 'searching'}
                 className="px-4 py-3 bg-neutral-200 text-black font-black uppercase tracking-widest text-xs rounded-xl hover:bg-white transition-colors disabled:opacity-50">
@@ -1029,7 +990,7 @@ function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
 
             {status === 'found' && foundCrew && tmpl && (
               <div className="flex flex-col gap-3 animate-fade-in">
-                <div className="bg-[#09090b] border rounded-xl p-4" style={{ borderColor: tmpl.color + '60' }}>
+                <div className="bg-[var(--bg0)] border rounded-xl p-4" style={{ borderColor: tmpl.color + '60' }}>
                   <div className="flex items-center gap-2 mb-1">
                     <CrewIcon id={tmpl.icon} size={16} color={tmpl.color} />
                     <span className="font-black text-sm uppercase tracking-widest text-white">{foundCrew.name}</span>
@@ -1042,7 +1003,7 @@ function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
                     <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-1.5">Join as</label>
                     <select value={selectedCharId} onChange={e => setSelectedCharId(e.target.value)}
                       className="w-full border border-neutral-700 rounded-xl px-3 py-2.5 text-sm outline-none"
-                      style={{ background: '#09090b', color: '#e5e5e5', colorScheme: 'dark' }}>
+                      style={{ background: 'var(--bg0)', color: 'var(--text)', colorScheme: 'inherit' }}>
                       {characters.map(c => <option key={c.id} value={c.id}>{c.name} · {c.playbook}</option>)}
                     </select>
                   </div>
@@ -1064,24 +1025,57 @@ function JoinCrewModal({ pb, userId, characters, onJoined, onClose }) {
 // ─── MEMBERS PANEL (inside crew dashboard, owner only) ────────────────────────
 
 function MembersPanel({ crew, pb, userId, onUpdate }) {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [requests, setRequests]     = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [memberNames, setMemberNames] = useState({}); // userId -> display name
   const isOwner = crew.ownerId === userId;
 
-  useEffect(() => {
+  const loadRequests = () => {
     if (!isOwner) { setLoading(false); return; }
+    setLoading(true);
     pb.collection('crewRequests').getFullList({
       filter: `crewId = "${crew.id}" && status = "pending"`,
       '$autoCancel': false,
     }).then(r => { setRequests(r); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [crew.id]);
+      .catch(err => { console.error('Failed to load requests:', err); setLoading(false); });
+  };
+
+  // Fetch character names for all members
+  useEffect(() => {
+    const memberList = Array.isArray(crew.memberId) ? crew.memberId : [];
+    if (memberList.length === 0) return;
+    // Seed from stored display names first — these are set at approval time
+    const stored = crew.memberDisplayNames || {};
+    setMemberNames(stored);
+    // Then fetch characters for any members not already in stored names
+    const missing = memberList.filter(id => !stored[id]);
+    if (missing.length === 0) return;
+    const userFilter = missing.map(id => `user="${id}"`).join(' || ');
+    pb.collection('characters').getFullList({
+      filter: userFilter,
+      '$autoCancel': false,
+    }).then(chars => {
+      const nameMap = { ...stored };
+      chars.forEach(c => {
+        if (!nameMap[c.user]) {
+          nameMap[c.user] = c.name + (c.playbook ? ` · ${c.playbook}` : '');
+        }
+      });
+      setMemberNames(nameMap);
+    }).catch(() => {});
+  }, [crew.memberId]);
+
+  useEffect(() => { loadRequests(); }, [crew.id]);
 
   const handleApprove = async (req) => {
     try {
       await pb.collection('crewRequests').update(req.id, { status: 'approved' }, { '$autoCancel': false });
       const newMemberList = [...(crew.memberId || []), req.requesterId];
-      onUpdate({ memberId: newMemberList });
+      // Also store their display name so we don't need to re-fetch later
+      const newDisplayNames = { ...(crew.memberDisplayNames || {}), [req.requesterId]: req.requesterName };
+      onUpdate({ memberId: newMemberList, memberDisplayNames: newDisplayNames });
+      // Update local state immediately so the UI reflects it without waiting for PB
+      setMemberNames(prev => ({ ...prev, [req.requesterId]: req.requesterName }));
       setRequests(prev => prev.filter(r => r.id !== req.id));
     } catch (err) { console.error('Approve failed:', err); }
   };
@@ -1096,7 +1090,9 @@ function MembersPanel({ crew, pb, userId, onUpdate }) {
   const handleKick = async (memberId) => {
     if (!confirm('Remove this member from the crew?')) return;
     const newMemberList = (crew.memberId || []).filter(id => id !== memberId);
-    onUpdate({ memberId: newMemberList });
+    const newDisplayNames = { ...(crew.memberDisplayNames || {}) };
+    delete newDisplayNames[memberId];
+    onUpdate({ memberId: newMemberList, memberDisplayNames: newDisplayNames });
   };
 
   const memberList = crew.memberId || [];
@@ -1105,13 +1101,18 @@ function MembersPanel({ crew, pb, userId, onUpdate }) {
     <div className="flex flex-col gap-3">
       {/* Pending requests — owner only */}
       {isOwner && !loading && requests.length > 0 && (
-        <div className="bg-[#111113] border border-amber-900/40 rounded-2xl p-4">
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-3 flex items-center gap-1.5">
-            <Clock size={11} /> Pending Requests ({requests.length})
-          </h4>
+        <div className="bg-[var(--bg2)] border border-amber-900/40 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-500 flex items-center gap-1.5">
+              <Clock size={11} /> Pending Requests ({requests.length})
+            </h4>
+            <button onClick={loadRequests} className="text-[9px] font-black uppercase tracking-widest text-neutral-600 hover:text-neutral-300 transition-colors px-2 py-1 border border-neutral-800 rounded-lg">
+              Refresh
+            </button>
+          </div>
           <div className="space-y-2">
             {requests.map(req => (
-              <div key={req.id} className="flex items-center justify-between gap-3 bg-[#09090b] border border-neutral-800 rounded-xl px-3 py-2.5">
+              <div key={req.id} className="flex items-center justify-between gap-3 bg-[var(--bg0)] border border-neutral-800 rounded-xl px-3 py-2.5">
                 <span className="text-sm font-bold text-neutral-200">{req.requesterName}</span>
                 <div className="flex gap-1.5">
                   <button onClick={() => handleApprove(req)}
@@ -1130,13 +1131,20 @@ function MembersPanel({ crew, pb, userId, onUpdate }) {
       )}
 
       {/* Members list */}
-      <div className="bg-[#111113] border border-neutral-800 rounded-2xl p-4">
-        <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-3 flex items-center gap-1.5">
-          <Users size={11} /> Members ({memberList.length + 1})
-        </h4>
+      <div className="bg-[var(--bg2)] border border-neutral-800 rounded-2xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-500 flex items-center gap-1.5">
+            <Users size={11} /> Members ({memberList.length + 1})
+          </h4>
+          {isOwner && (
+            <button onClick={loadRequests} className="text-[9px] font-black uppercase tracking-widest text-neutral-600 hover:text-neutral-300 transition-colors px-2 py-1 border border-neutral-800 rounded-lg">
+              Check Requests
+            </button>
+          )}
+        </div>
         <div className="space-y-2">
           {/* Owner */}
-          <div className="flex items-center justify-between bg-[#09090b] border border-neutral-800 rounded-xl px-3 py-2.5">
+          <div className="flex items-center justify-between bg-[var(--bg0)] border border-neutral-800 rounded-xl px-3 py-2.5">
             <div className="flex items-center gap-2">
               <Crown size={12} className="text-amber-500" />
               <span className="text-sm font-bold text-neutral-200">
@@ -1146,8 +1154,8 @@ function MembersPanel({ crew, pb, userId, onUpdate }) {
           </div>
           {/* Other members */}
           {memberList.map(mid => (
-            <div key={mid} className="flex items-center justify-between bg-[#09090b] border border-neutral-800 rounded-xl px-3 py-2.5">
-              <span className="text-sm text-neutral-400">{mid === userId ? 'You' : `Member`}</span>
+            <div key={mid} className="flex items-center justify-between bg-[var(--bg0)] border border-neutral-800 rounded-xl px-3 py-2.5">
+              <span className="text-sm text-neutral-300">{mid === userId ? 'You' : (memberNames[mid] || 'Member')}</span>
               {isOwner && (
                 <button onClick={() => handleKick(mid)}
                   className="text-neutral-700 hover:text-red-500 transition-colors p-1">
@@ -1262,10 +1270,10 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
   ];
 
   return (
-    <div className="flex flex-col animate-fade-in" style={{ background: '#09090b', height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
+    <div className="flex flex-col animate-fade-in" style={{ background: 'var(--bg0)', height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
 
       {/* ── HEADER ── */}
-      <div className="shrink-0 bg-[#111113] border-b border-neutral-800 shadow-md" style={{ borderTopColor: accentColor, borderTopWidth: 3 }}>
+      <div className="shrink-0 bg-[var(--bg2)] border-b border-neutral-800 shadow-md" style={{ borderTopColor: accentColor, borderTopWidth: 3 }}>
 
         {/* Row 1: Back + crew name */}
         <div className="flex items-center gap-3 px-4 pt-3 pb-2">
@@ -1299,7 +1307,7 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
         {/* Row 2: Stats — 4 equal large boxes */}
         <div className="grid grid-cols-4 gap-2 px-4 pb-3">
           {STATS.map(s => (
-            <div key={s.key} className="flex flex-col bg-[#09090b] border border-neutral-800 rounded-xl overflow-hidden">
+            <div key={s.key} className="flex flex-col bg-[var(--bg0)] border border-neutral-800 rounded-xl overflow-hidden">
               {/* Label */}
               <span className="text-[9px] font-black uppercase tracking-widest text-neutral-600 text-center pt-2 pb-1">{s.label}</span>
               {/* Big number */}
@@ -1324,7 +1332,7 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
         {/* Row 3: Stacks transfer — clear two-column layout */}
         <div className="grid grid-cols-2 gap-2 px-4 pb-3">
           {/* Character stacks */}
-          <div className="flex items-center justify-between bg-[#09090b] border border-neutral-800 rounded-xl px-3 py-2">
+          <div className="flex items-center justify-between bg-[var(--bg0)] border border-neutral-800 rounded-xl px-3 py-2">
             <div>
               <span className="text-[9px] font-black uppercase tracking-widest text-neutral-600 block">{currName}</span>
               <span className="font-black text-white text-lg leading-none">{charCoin}</span>
@@ -1338,7 +1346,7 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
             </button>
           </div>
           {/* Crew vault */}
-          <div className="flex items-center justify-between bg-[#09090b] border border-neutral-800 rounded-xl px-3 py-2">
+          <div className="flex items-center justify-between bg-[var(--bg0)] border border-neutral-800 rounded-xl px-3 py-2">
             <button
               onClick={() => transferStacks('crewToChar')}
               disabled={(crew.stacks || 0) < 1}
@@ -1354,27 +1362,27 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
       </div>
 
       {/* ── TAB BAR ── */}
-      <div className="shrink-0 grid bg-[#111113] border-b border-neutral-800" style={{ gridTemplateColumns: `repeat(${CONTENT_TABS.length}, 1fr)` }}>
+      <div className="shrink-0 grid bg-[var(--bg2)] border-b border-neutral-800" style={{ gridTemplateColumns: `repeat(${CONTENT_TABS.length}, 1fr)` }}>
         {CONTENT_TABS.map(t => (
           <button key={t.id} onClick={() => setContentTab(t.id)}
             className="flex flex-col items-center gap-1 py-3 transition-all border-b-2"
             style={{
               borderBottomColor: contentTab === t.id ? accentColor : 'transparent',
-              color: contentTab === t.id ? 'white' : '#525252',
+              color: contentTab === t.id ? 'var(--text-bright)' : 'var(--text-dim)',
             }}>
-            <span style={{ color: contentTab === t.id ? accentColor : '#525252' }}>{t.icon}</span>
+            <span style={{ color: contentTab === t.id ? accentColor : 'var(--text-dim)' }}>{t.icon}</span>
             <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
           </button>
         ))}
       </div>
 
       {/* ── CONTENT ── */}
-      <div className="flex-1 overflow-y-auto hide-scroll" style={{ background: '#09090b' }}>
+      <div className="flex-1 overflow-y-auto hide-scroll" style={{ background: 'var(--bg0)' }}>
 
         {/* CLAIMS TAB */}
         {contentTab === 'claims' && (
           <div className="flex flex-col h-full">
-            <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-neutral-800 bg-[#111113]">
+            <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-neutral-800 bg-[var(--bg2)]">
               <div>
                 <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: accentColor }}>
                   Claims Network · {template.name}
@@ -1406,7 +1414,7 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
                       className="text-[10px] font-black uppercase tracking-widest px-3 py-2.5 border rounded-xl transition-all"
                       style={activeCircle === circle
                         ? { borderColor: accentColor, background: accentColor + '20', color: accentColor }
-                        : { borderColor: '#262626', background: '#111113', color: '#525252' }}>
+                        : { borderColor: 'var(--border)', background: 'var(--bg2)', color: 'var(--text-muted)' }}>
                       {circle}
                     </button>
                   ))}
@@ -1422,7 +1430,7 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
                 <input value={crew.utopianVision || ''} onChange={e => onUpdate({ utopianVision: e.target.value })}
                   placeholder="Free · Egalitarian · Radiant..."
                   className="w-full border border-neutral-800 rounded-xl text-sm px-3 py-2.5 outline-none"
-                  style={{ background: '#09090b', color: '#e5e5e5', colorScheme: 'dark' }} />
+                  style={{ background: 'var(--bg0)', color: 'var(--text)', colorScheme: 'inherit' }} />
               </div>
             )}
 
@@ -1482,12 +1490,12 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
             ) : (
               <div className="space-y-3">
                 {crew.cohorts.map(cohort => (
-                  <div key={cohort.id} className="bg-[#111113] border border-neutral-800 rounded-2xl p-4 space-y-3">
+                  <div key={cohort.id} className="bg-[var(--bg2)] border border-neutral-800 rounded-2xl p-4 space-y-3">
                     {/* Name + delete */}
                     <div className="flex items-center gap-3">
                       <input value={cohort.name} onChange={e => updateCohort(cohort.id, { name: e.target.value })}
                         className="flex-1 bg-transparent font-black text-sm uppercase tracking-wide text-neutral-200 outline-none border-b border-neutral-800 focus:border-red-800 pb-1"
-                        style={{ colorScheme: 'dark' }} />
+                        style={{ colorScheme: 'inherit' }} />
                       <button onClick={() => deleteCohort(cohort.id)} className="text-neutral-700 hover:text-red-500 transition-colors p-1.5">
                         <Trash2 size={14} />
                       </button>
@@ -1497,13 +1505,13 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
                     <div className="grid grid-cols-2 gap-2">
                       <select value={cohort.type} onChange={e => updateCohort(cohort.id, { type: e.target.value, subtype: '' })}
                         className="border border-neutral-700 rounded-xl px-3 py-2.5 text-sm outline-none font-bold"
-                        style={{ background: '#1a1a1a', color: '#d4d4d4', colorScheme: 'dark' }}>
+                        style={{ background: 'var(--bg3)', color: 'var(--text)', colorScheme: 'inherit' }}>
                         {COHORT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                       {cohort.type === 'Gang' ? (
                         <select value={cohort.subtype} onChange={e => updateCohort(cohort.id, { subtype: e.target.value })}
                           className="border border-neutral-700 rounded-xl px-3 py-2.5 text-sm outline-none"
-                          style={{ background: '#1a1a1a', color: '#a3a3a3', colorScheme: 'dark' }}>
+                          style={{ background: 'var(--bg3)', color: 'var(--text-dim)', colorScheme: 'inherit' }}>
                           <option value="">Type...</option>
                           {GANG_SUBTYPES.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
@@ -1511,7 +1519,7 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
                         <input value={cohort.subtype} onChange={e => updateCohort(cohort.id, { subtype: e.target.value })}
                           placeholder="Specialty..."
                           className="border border-neutral-700 rounded-xl px-3 py-2.5 text-sm outline-none"
-                          style={{ background: '#1a1a1a', color: '#a3a3a3', colorScheme: 'dark' }} />
+                          style={{ background: 'var(--bg3)', color: 'var(--text-dim)', colorScheme: 'inherit' }} />
                       )}
                     </div>
 
@@ -1519,10 +1527,10 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
                     <div className="grid grid-cols-2 gap-2">
                       <select value={cohort.status} onChange={e => updateCohort(cohort.id, { status: e.target.value })}
                         className={`border rounded-xl px-3 py-2.5 text-sm outline-none font-bold ${STATUS_COLORS[cohort.status] || ''}`}
-                        style={{ colorScheme: 'dark' }}>
+                        style={{ colorScheme: 'inherit' }}>
                         {COHORT_STATUSES.map(s => <option key={s} value={s} className="bg-neutral-900 text-neutral-200">{s}</option>)}
                       </select>
-                      <div className="flex items-center justify-between bg-[#1a1a1a] border border-neutral-700 rounded-xl px-3 py-2">
+                      <div className="flex items-center justify-between bg-[var(--bg3)] border border-neutral-700 rounded-xl px-3 py-2">
                         <span className="text-[10px] font-black text-neutral-500 uppercase">Quality</span>
                         <div className="flex items-center gap-2">
                           <button onClick={() => updateCohort(cohort.id, { quality: Math.max(0, (cohort.quality || 1) - 1) })}
@@ -1569,7 +1577,7 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
                       <span className="text-[10px] uppercase font-black text-neutral-600 block mb-1.5">Downtime Action</span>
                       <select value={cohort.downtimeAction || ''} onChange={e => updateCohort(cohort.id, { downtimeAction: e.target.value })}
                         className="w-full border border-neutral-700 rounded-xl px-3 py-2.5 text-sm outline-none"
-                        style={{ background: '#1a1a1a', color: '#a3a3a3', colorScheme: 'dark' }}>
+                        style={{ background: 'var(--bg3)', color: 'var(--text-dim)', colorScheme: 'inherit' }}>
                         <option value="">— None assigned —</option>
                         <option value="assist">Assist a PC (+{cohort.quality || 1}d bonus)</option>
                         <option value="ltp">Long-Term Project (roll Quality)</option>
@@ -1621,12 +1629,12 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
                         className="w-full px-4 py-3.5 border rounded-xl text-left flex justify-between items-center transition-all active:scale-[0.99]"
                         style={owned
                           ? { background: accentColor + '18', borderColor: accentColor + '60', color: accentColor }
-                          : { background: '#111113', borderColor: '#262626', color: '#737373' }}>
+                          : { background: 'var(--bg2)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
                         <span className="font-black text-sm uppercase tracking-wide">{upg.name}</span>
                         {owned && <CheckCircle size={16} />}
                       </button>
                       {activeUpgrade === upg.name && (
-                        <div className="px-4 py-3 text-sm text-neutral-400 leading-relaxed bg-[#09090b] border border-t-0 border-neutral-800 rounded-b-xl">
+                        <div className="px-4 py-3 text-sm text-neutral-400 leading-relaxed bg-[var(--bg0)] border border-t-0 border-neutral-800 rounded-b-xl">
                           {upg.desc}
                         </div>
                       )}
@@ -1650,12 +1658,12 @@ function CrewDashboard({ crew, characters, onBack, onUpdate, onTransferChar, pb,
                           className="w-full px-3 py-3 border rounded-xl text-left flex justify-between items-center transition-all active:scale-[0.99]"
                           style={owned
                             ? { background: accentColor + '15', borderColor: accentColor + '50', color: accentColor }
-                            : { background: '#111113', borderColor: '#262626', color: '#737373' }}>
+                            : { background: 'var(--bg2)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
                           <span className="font-bold text-xs uppercase tracking-wide">{item.name}</span>
                           {owned && <CheckCircle size={13} />}
                         </button>
                         {activeUpgrade === key && (
-                          <div className="px-3 py-2.5 text-xs text-neutral-400 leading-relaxed bg-[#09090b] border border-t-0 border-neutral-800 rounded-b-xl col-span-2">
+                          <div className="px-3 py-2.5 text-xs text-neutral-400 leading-relaxed bg-[var(--bg0)] border border-t-0 border-neutral-800 rounded-b-xl col-span-2">
                             {item.desc}
                           </div>
                         )}
@@ -1708,7 +1716,7 @@ function CrewCreation({ characters, onCreated, onCancel, preselectedCharId }) {
   const t = CREW_TEMPLATES[template];
 
   return (
-    <div className="max-w-2xl mx-auto p-4 pb-28 animate-fade-in" style={{ background: '#09090b', minHeight: '100%' }}>
+    <div className="max-w-2xl mx-auto p-4 pb-28 animate-fade-in" style={{ background: 'var(--bg0)', minHeight: '100%' }}>
       <div className="flex items-center gap-3 mb-5">
         <button onClick={onCancel} className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors text-sm font-bold p-1.5 hover:bg-neutral-800 rounded-lg">
           <ArrowLeft size={16} /> Crews
@@ -1716,13 +1724,13 @@ function CrewCreation({ characters, onCreated, onCancel, preselectedCharId }) {
         <h2 className="font-black uppercase tracking-widest text-neutral-200">New Crew</h2>
       </div>
 
-      <div className="bg-[#111113] border border-neutral-800 rounded-xl p-5 space-y-5">
+      <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl p-5 space-y-5">
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Assign to Character</label>
             <select value={charId} onChange={e => setCharId(e.target.value)}
               className="w-full border border-neutral-800 rounded-xl px-3 py-2.5 text-sm outline-none appearance-none"
-              style={{ background: '#09090b', color: '#e5e5e5', colorScheme: 'dark' }}>
+              style={{ background: 'var(--bg0)', color: 'var(--text)', colorScheme: 'inherit' }}>
               <option value="">— Select Character —</option>
               {characters.map(c => <option key={c.id} value={c.id}>{c.name}{c.alias ? ` "${c.alias}"` : ''} · {c.playbook}</option>)}
             </select>
@@ -1731,7 +1739,7 @@ function CrewCreation({ characters, onCreated, onCancel, preselectedCharId }) {
             <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Crew Name</label>
             <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. The Night Vipers"
               className="w-full border border-neutral-800 rounded-xl px-3 py-2.5 text-sm outline-none"
-              style={{ background: '#09090b', color: '#e5e5e5', colorScheme: 'dark' }} />
+              style={{ background: 'var(--bg0)', color: 'var(--text)', colorScheme: 'inherit' }} />
           </div>
         </div>
 
@@ -1741,7 +1749,7 @@ function CrewCreation({ characters, onCreated, onCancel, preselectedCharId }) {
             {Object.entries(CREW_TEMPLATES).map(([id, ct]) => (
               <button key={id} onClick={() => setTemplate(id)}
                 className={`p-3 border rounded-xl text-left transition-all`}
-                style={template === id ? { borderColor: ct.color, background: ct.color + '15' } : { borderColor: '#262626', background: '#09090b' }}>
+                style={template === id ? { borderColor: ct.color, background: ct.color + '15' } : { borderColor: 'var(--border)', background: 'var(--bg0)' }}>
                 <div className="flex items-center gap-1.5 mb-1">
                   <CrewIcon id={ct.icon} size={16} color={template === id ? ct.color : '#737373'} />
                   <span className="font-black text-xs uppercase tracking-wide" style={template === id ? { color: ct.color } : { color: '#737373' }}>{ct.name}</span>
@@ -1754,7 +1762,7 @@ function CrewCreation({ characters, onCreated, onCancel, preselectedCharId }) {
 
         {/* Selected crew details */}
         {t && (
-          <div className="bg-[#09090b] border rounded-xl p-4 space-y-3" style={{ borderColor: t.color + '40' }}>
+          <div className="bg-[var(--bg0)] border rounded-xl p-4 space-y-3" style={{ borderColor: t.color + '40' }}>
             <div className="flex items-center gap-2">
               <CrewIcon id={t.icon} size={20} />
               <div>
@@ -1777,7 +1785,7 @@ function CrewCreation({ characters, onCreated, onCancel, preselectedCharId }) {
           </div>
         )}
 
-        <button onClick={() => { if (!name.trim() || !charId) return; onCreated(defaultCrew(name.trim(), template, charId)); }}
+        <button onClick={() => { if (!name.trim() || !charId) return; onCreated(defaultCrew(name.trim(), template, charId, null)); }}
           disabled={!name.trim() || !charId}
           className="w-full bg-neutral-200 text-black font-black uppercase tracking-widest py-3 rounded-xl hover:bg-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
           Establish Crew
@@ -1806,9 +1814,12 @@ const CrewManager = ({
   const [activeCrewId, setActiveCrewId] = useState(null);
   const [view, setView]             = useState('roster');
   const [loading, setLoading]       = useState(true);
-  const [loadError, setLoadError]   = useState(null);
   const [showJoin, setShowJoin]     = useState(false);
 
+  // Guard: if no pbInstance was passed, show an error
+  if (!pb) {
+    console.error('CrewManager: pbInstance prop is required');
+  }
 
   const debounceTimer = useRef(null);
   const pendingUpdates = useRef({});
@@ -1816,14 +1827,6 @@ const CrewManager = ({
   // Load crews from PocketBase on mount
   useEffect(() => {
     const loadCrews = async () => {
-      // Guard: pb must exist before we attempt any collection calls
-      if (!pb) {
-        console.error('CrewManager: pbInstance prop is required — skipping crew load');
-        setLoadError('No database connection was provided.');
-        setLoading(false);
-        return;
-      }
-      setLoadError(null);
       try {
         const records = await pb.collection('crews').getFullList({ sort: '-created', '$autoCancel': false });
         // Normalize PocketBase field names (templateID -> templateId etc.) for internal use
@@ -1831,11 +1834,25 @@ const CrewManager = ({
           ...r,
           templateId:  r.templateID  || r.templateId,
           characterId: r.characterID || r.characterId,
+          inviteCode:  r.inviteCode  || '',
+          ownerId:     r.ownerId     || '',
+          memberId:    Array.isArray(r.memberId) ? r.memberId : [],
+          memberDisplayNames: (typeof r.memberDisplayNames === 'object' && r.memberDisplayNames !== null) ? r.memberDisplayNames : {},
         }));
+
+        // Auto-generate invite codes for any existing crews that don't have one
+        const needsCodes = normalized.filter(r => !r.inviteCode);
+        for (const crew of needsCodes) {
+          const code = generateInviteCode();
+          try {
+            await pb.collection('crews').update(crew.id, { inviteCode: code }, { '$autoCancel': false });
+            crew.inviteCode = code;
+          } catch (e) { /* non-critical, skip */ }
+        }
+
         setCrews(normalized);
       } catch (err) {
         console.error('Could not load crews:', err);
-        setLoadError(err.message || 'Could not connect to the server.');
       } finally {
         setLoading(false);
       }
@@ -1869,14 +1886,22 @@ const CrewManager = ({
         inviteCode:     crewTemplate.inviteCode || generateInviteCode(),
         ownerId:        finalUserId,
         memberId:       [],
+        memberDisplayNames: {},
         user:           finalUserId,
       };
       const record = await pb.collection('crews').create(payload, { '$autoCancel': false });
-      // Normalize the returned record to use camelCase internally
-      record.templateId  = record.templateID;
-      record.characterId = record.characterID;
-      setCrews(prev => [...prev, record]);
-      setActiveCrewId(record.id);
+      // Fully normalize the returned record so local state matches what we show in UI
+      const normalizedRecord = {
+        ...record,
+        templateId:  record.templateID  || record.templateId,
+        characterId: record.characterID || record.characterId,
+        inviteCode:  record.inviteCode  || payload.inviteCode,
+        ownerId:     record.ownerId     || finalUserId,
+        memberId:    record.memberId    || [],
+        memberDisplayNames: record.memberDisplayNames || {},
+      };
+      setCrews(prev => [...prev, normalizedRecord]);
+      setActiveCrewId(normalizedRecord.id);
       setView('dashboard');
     } catch (err) {
       console.error('Failed to create crew:', err);
@@ -1934,32 +1959,6 @@ const CrewManager = ({
     return isMember;
   });
 
-  // Retry helper — re-runs the same fetch logic
-  const retryLoad = () => {
-    if (!pb) return;
-    setLoading(true);
-    setLoadError(null);
-    pb.collection('crews').getFullList({ sort: '-created', '$autoCancel': false })
-      .then(records => setCrews(records.map(r => ({
-        ...r,
-        templateId:  r.templateID  || r.templateId,
-        characterId: r.characterID || r.characterId,
-      }))))
-      .catch(err => setLoadError(err.message || 'Could not connect to the server.'))
-      .finally(() => setLoading(false));
-  };
-
-  // Always show the dagger screen while loading or on error — before any view checks
-  if (loading || loadError) {
-    return (
-      <LoadingDagger
-        message="Assembling the crew..."
-        error={loadError}
-        onRetry={loadError ? retryLoad : null}
-      />
-    );
-  }
-
   if (view === 'dashboard' && activeCrew) {
     const currentUserId = userId || pb?.authStore.record?.id || pb?.authStore.model?.id;
     return <CrewDashboard crew={activeCrew} characters={characters} onBack={() => { setView('roster'); setActiveCrewId(null); }} onUpdate={handleUpdate} onTransferChar={handleTransferChar} pb={pb} userId={currentUserId} />;
@@ -1968,8 +1967,19 @@ const CrewManager = ({
     return <CrewCreation characters={characters} preselectedCharId={preselectedCharId} onCreated={handleCreated} onCancel={() => setView('roster')} />;
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32" style={{ background: 'var(--bg0)', minHeight: '100%' }}>
+        <div className="flex flex-col items-center gap-3 text-neutral-600">
+          <div className="w-6 h-6 border-2 border-neutral-700 border-t-neutral-400 rounded-full animate-spin" />
+          <p className="text-xs uppercase font-black tracking-widest">Loading crews...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5 animate-fade-in p-4 pb-28 max-w-5xl mx-auto" style={{ background: '#09090b', minHeight: '100%' }}>
+    <div className="space-y-5 animate-fade-in p-4 pb-28 max-w-5xl mx-auto" style={{ background: 'var(--bg0)', minHeight: '100%' }}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-black uppercase tracking-widest text-neutral-200">{preselectedCharId ? 'Linked Crews' : 'Crews'}</h2>
         <button onClick={() => setView('create')} className="flex items-center gap-2 bg-neutral-200 text-black font-bold px-4 py-2 text-sm rounded-lg hover:bg-white transition-colors shadow-sm shrink-0">
@@ -1994,7 +2004,7 @@ const CrewManager = ({
       )}
 
       {filteredCrews.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 border border-neutral-800/50 border-dashed rounded-2xl bg-[#111113]/50 text-neutral-600">
+        <div className="flex flex-col items-center justify-center py-24 border border-neutral-800/50 border-dashed rounded-2xl bg-[var(--bg2)]/50 text-neutral-600">
           <Users size={32} className="mb-3 opacity-20" />
           <p className="text-sm italic">No crews established yet.</p>
         </div>
@@ -2007,7 +2017,7 @@ const CrewManager = ({
             const angerFull  = (crew.wardBoss?.anger || 0) >= 4;
             return (
               <div key={crew.id}
-                className="bg-[#111113] border border-neutral-800 rounded-xl p-5 hover:border-neutral-600 transition-all group relative cursor-pointer overflow-hidden"
+                className="bg-[var(--bg2)] border border-neutral-800 rounded-xl p-5 hover:border-neutral-600 transition-all group relative cursor-pointer overflow-hidden"
                 style={{ borderTopColor: tmpl?.color, borderTopWidth: 3 }}
                 onClick={() => { setActiveCrewId(crew.id); setView('dashboard'); }}>
                 <button onClick={e => { e.stopPropagation(); handleDelete(crew.id); }}

@@ -1,5 +1,8 @@
 // --- GEMINI API INTEGRATION ---
-const apiKey = "AIzaSyDtNAC69JwPDbvc4Qrsqo23XjN1QEpzKcQ"; 
+// Key is read from .env (VITE_GEMINI_API_KEY). That file is gitignored.
+// Note: Vite still bakes this into the client bundle at build time.
+// A server-side proxy is the proper long-term solution.
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
 const callGemini = async (prompt) => {
   if (!apiKey) return "Error: No API Key found.";

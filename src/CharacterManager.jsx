@@ -6,6 +6,7 @@ import {
   Clock, Trash2, Plus, Minus, ArrowLeft, PlusCircle, ZapOff, FileText
 } from "lucide-react";
 import { DB } from "./database";
+import { PLAYBOOKS, XP_TRIGGERS, ITEMS_LISTS, PLAYBOOK_ITEMS } from "./gamedata.jsx";
 
 
 const Check = ({ size = 24, strokeWidth = 2, className = "" }) => (
@@ -14,67 +15,23 @@ const Check = ({ size = 24, strokeWidth = 2, className = "" }) => (
   </svg>
 );
 
-const PLAYBOOKS = {
-  "BitD Core": {
-    "Cutter": { dots: { skirmish: 2, command: 1 }, abilities: ["Battleborn", "Bodyguard", "Ghost Fighter", "Leader", "Mule", "Not to be Trifled With", "Savage", "Vigorous", "Versatile"] },
-    "Hound": { dots: { hunt: 2, survey: 1 }, abilities: ["Sharpshooter", "Focused", "Ghost Hunter", "Scout", "Survivor", "Tough As Nails", "Vengeful", "Versatile"] },
-    "Leech": { dots: { tinker: 2, wreck: 1 }, abilities: ["Alchemist", "Artificer", "Physician", "Saboteur", "Venomous", "Ghost Ward", "Versatile"] },
-    "Lurk": { dots: { prowl: 2, finesse: 1 }, abilities: ["Infiltrator", "Ambush", "Assassin", "Daredevil", "Expertise", "Ghost Veil", "Reflexes", "Versatile"] },
-    "Slide": { dots: { consort: 2, sway: 1 }, abilities: ["Rook's Gambit", "Cloak & Dagger", "Ghost Voice", "Like Looking in a Mirror", "A Little Something on the Side", "Mesmerism", "Subterfuge", "Trust in Me", "Versatile"] },
-    "Spider": { dots: { study: 2, consort: 1 }, abilities: ["Foresight", "Calculating", "Connected", "Functioning Vice", "Ghost Contract", "Mastermind", "Weaving the Web", "Versatile"] },
-    "Whisper": { dots: { attune: 2, study: 1 }, abilities: ["Compel", "Ghost Mind", "Iron Will", "Occultist", "Ritual", "Strange Methods", "Tempest", "Warded", "Versatile"] }
-  },
-  "B68": {
-    "Hound": { dots: { hunt: 2, survey: 1 }, abilities: ["Hound's Instincts", "Learn the Hard Way", "Just a Scratch", "Fixer", "In Too Deep", "Echo Pet", "Dogged Persistence", "Versatile"] },
-    "Hull": { dots: { skirmish: 2, tinker: 1 }, abilities: ["Automaton", "Powerhouse", "Retractable Arsenal", "Energy Beam", "Interface", "Frame Upgrade", "Versatile"] },
-    "Intellectual": { dots: { study: 2, tinker: 1 }, abilities: ["Unalloyed Genius", "Mentalist", "High-Functioning Insomniac", "Try Not to Break It This Time", "Researcher", "Anatomist", "Encyclopedic Knowledge", "Advanced Sparkmind", "Versatile"] },
-    "Operative": { dots: { prowl: 2, finesse: 1 }, abilities: ["Clean", "Double Agent", "Dead Drop", "Echo Walker", "Wetwork", "Cipher", "Sleeper Agents", "Control", "Versatile"] },
-    "Paranormalist": { dots: { attune: 2, study: 1 }, abilities: ["Third Eye Opened", "Precognition", "Psychokinesis", "Extrasensory Perception", "Forbidden Science", "Echo Projection", "Medium", "Parapsychology", "Versatile"] },
-    "Radical": { dots: { command: 2, consort: 1 }, abilities: ["True Believer", "Direct Action", "Echo Chamber", "Fellow Travelers", "Polemicist", "Praxis", "Pamphleteer", "Total Dedication", "Versatile"] },
-    "Swinger": { dots: { consort: 2, sway: 1 }, abilities: ["Here Goes Nothing", "Yeah, Baby", "Groove Machine", "Improviser", "Always Hustling", "Party Animal", "Echo Twin", "Smooth", "Versatile"] },
-    "Veteran": { dots: { skirmish: 2, command: 1 }, abilities: ["Military Discipline", "Got Your Back", "Echo Fighter", "Leadership", "Walking Arsenal", "War Machine", "Get Back In There", "Creative Community", "Versatile"] },
-    "Ghost/Echo": { dots: {}, abilities: ["Resonance Echo", "Dissipate", "Manifest", "Poltergeist", "Possess", "Versatile"] },
-    "Vampire": { dots: {}, abilities: ["Terrible Power", "Telepathy", "Resonance Void", "Dark Majesty", "Sinister Guile", "Feral Whispers", "Versatile"] },
-    "Time Traveler": { dots: {}, abilities: ["Future Shock", "Advanced Combat Reflexes", "Psionics", "Pocket Dimension", "Multi-Dimensional", "Quantum Displacement", "Save and Reload", "Versatile"] }
-  }
-};
-
-const XP_TRIGGERS = {
-  "BitD Core": { "Cutter": "violence or coercion", "Hound": "tracking or violence", "Leech": "technical skill or mayhem", "Lurk": "stealth or evasion", "Slide": "deception or influence", "Spider": "calculation or conspiracy", "Whisper": "knowledge or arcane power" },
-  "B68": { "Hound": "talking or determination", "Hull": "cold simplicity or following orders", "Intellectual": "technical skill or cleverness", "Operative": "stealth or deception", "Paranormalist": "knowledge or paranormal power", "Radical": "persuasion or mayhem", "Swinger": "charm or quick thinking", "Veteran": "violence or discipline", "Ghost/Echo": "exact vengeance or express outrage", "Vampire": "display dominance or slay without mercy", "Time Traveler": "fearless conviction or lateral thinking" }
-};
-
-const ITEMS_LISTS = {
-  "BitD Core": [
-    { id: "core-blade", name: "A Blade or Two", boxes: 1 }, { id: "core-knives", name: "Throwing Knives", boxes: 1 }, { id: "core-pistol", name: "A Pistol", boxes: 1 },
-    { id: "core-large", name: "A Large Weapon", boxes: 2 }, { id: "core-unusual", name: "An Unusual Weapon", boxes: 1 }, { id: "core-armor", name: "Armor", boxes: 2 },
-    { id: "core-heavy", name: "+Heavy Armor", boxes: 3 }, { id: "core-burglar", name: "Burglary Gear", boxes: 1 }, { id: "core-climbing", name: "Climbing Gear", boxes: 2 },
-    { id: "core-arcane", name: "Arcane Implements", boxes: 1 }, { id: "core-docs", name: "Documents", boxes: 1 }, { id: "core-subterfuge", name: "Subterfuge Supplies", boxes: 1 },
-    { id: "core-demo", name: "Demolition Tools", boxes: 2 }, { id: "core-tinker", name: "Tinkering Tools", boxes: 1 }, { id: "core-lantern", name: "Lantern", boxes: 1 }
-  ],
-  "B68": [
-    { id: "b68-blade", name: "A Blade or Two", boxes: 1 }, { id: "b68-silenced", name: "Silenced Shooter", boxes: 1 }, { id: "b68-handcannon", name: "Handcannon [ ] x2", boxes: 1 },
-    { id: "b68-electro", name: "Electro-Blade", boxes: 2 }, { id: "b68-pump", name: "Pump-Action Scattergun", boxes: 2 }, { id: "b68-armor", name: "Armor", boxes: 3 },
-    { id: "b68-burglar", name: "Burglary Gear", boxes: 1 }, { id: "b68-climbing", name: "Climbing Gear", boxes: 2 }, { id: "b68-paranormal", name: "Paranormal Implements", boxes: 1 },
-    { id: "b68-docs", name: "Documents", boxes: 1 }, { id: "b68-subterfuge", name: "Subterfuge Supplies", boxes: 1 }, { id: "b68-demo", name: "Demolition Tools", boxes: 2 },
-    { id: "b68-tinker", name: "Tinkering Tools", boxes: 1 }, { id: "b68-arc", name: "Arclighter", boxes: 1 }
-  ]
-};
-
-const PLAYBOOK_ITEMS = {
-  "Hound": [ { name: "Fine snub-nosed handcannon", boxes: 1 }, { name: "A loyal, clever pet", boxes: 1 }, { name: "Binoculars", boxes: 1 }, { name: "Hipflask of the good stuff", boxes: 1 }, { name: "Pocketful of focus pills", boxes: 1 }, { name: "RF radio handset", boxes: 1 } ],
-  "Hull": [ { name: "Advanced Visual Sensors", boxes: 1 }, { name: "Lifelike Appearance", boxes: 1 }, { name: "Hidden Compartment", boxes: 1 }, { name: "Smokescreen Emitter", boxes: 1 }, { name: "Surveillance Hardware", boxes: 1 }, { name: "Jet Propulsion", boxes: 1 } ],
-  "Intellectual": [ { name: "Fine tinkering tools", boxes: 1 }, { name: "Experimental laser cannon", boxes: 2 }, { name: "Gadgets", boxes: 1 }, { name: "Pocketful of focus pills", boxes: 1 }, { name: "RF radio handset", boxes: 1 }, { name: "Sparkmind assistant", boxes: 1 } ],
-  "Operative": [ { name: "Truth serum syringe", boxes: 1 }, { name: "Fine sniper rifle", boxes: 2 }, { name: "Tiny tracking device", boxes: 1 }, { name: "Fine silenced shooter", boxes: 1 }, { name: "Fine disguise", boxes: 1 }, { name: "RF radio handset", boxes: 1 } ],
-  "Paranormalist": [ { name: "Fine resonance gauge", boxes: 1 }, { name: "Resonance accelerator pack", boxes: 2 }, { name: "Fine echo containment unit", boxes: 1 }, { name: "Psychic amplification device", boxes: 1 }, { name: "Loyal resonance entity", boxes: 1 }, { name: "RF radio handset", boxes: 1 } ],
-  "Radical": [ { name: "Provocative manifesto", boxes: 1 }, { name: "Nondescript change of clothes", boxes: 1 }, { name: "Bandolier (3 uses)", boxes: 1 }, { name: "Pocketful of go-go pills", boxes: 1 }, { name: "RF radio handset", boxes: 1 } ],
-  "Swinger": [ { name: "Fine clothes & jewelry", boxes: 1 }, { name: "Fine two-seat autopod", boxes: 1 }, { name: "An invitation to the party", boxes: 1 }, { name: "Fine concealed shooter", boxes: 1 }, { name: "Pocketful of sleeping pills", boxes: 1 }, { name: "RF radio handset", boxes: 1 } ],
-  "Veteran": [ { name: "Submachine Coilgun (SMC)", boxes: 1 }, { name: "Heavy Coilgun (HAC50)", boxes: 2 }, { name: "A few grenades", boxes: 1 }, { name: "Heat blade", boxes: 1 }, { name: "Pocketful of go-go pills", boxes: 1 }, { name: "RF radio handset", boxes: 1 } ],
-  "Ghost/Echo": [ { name: "Fine shadow cloak", boxes: 1 }, { name: "Fine blade (Jira-forged)", boxes: 1 }, { name: "Fine antiquated pistol", boxes: 1 }, { name: "Electroplasmic ammo", boxes: 1 }, { name: "Demonbane charm", boxes: 1 }, { name: "Mysterious ghost key", boxes: 1 } ]
-};
+// PLAYBOOKS, XP_TRIGGERS, ITEMS_LISTS, PLAYBOOK_ITEMS imported from gamedata.jsx above
 
 
 const STYLES = `
+/* ── Character backdrop: override bg tokens + frost all cards ── */
+.has-char-bg {
+  --bg0: rgba(9,  9,  11, 0.55);
+  --bg2: rgba(15, 15, 17, 0.70);
+  --bg3: rgba(31, 31, 31, 0.65);
+  --border: rgba(39,39,42,0.60);
+}
+.has-char-bg .rounded-xl,
+.has-char-bg .rounded-2xl {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
 @keyframes daggerSpin {
   0%   { transform: rotate(0deg)   scale(1);    filter: drop-shadow(0 0 6px rgba(239,68,68,0.0)); }
   25%  { transform: rotate(90deg)  scale(1.08); filter: drop-shadow(0 0 10px rgba(239,68,68,0.5)); }
@@ -102,7 +59,10 @@ const STYLES = `
   25% { transform: translateX(-2px); }
   75% { transform: translateX(2px); }
 }
-@keyframes dieSpinReel { from { transform: translateY(0); } to { transform: translateY(-56px); } }
+@keyframes dieSpinReel { from { transform: translateY(0); } to { transform: translateY(-50px); } }
+@keyframes dieSlam { 0%{opacity:0;transform:scale(1.3) translateY(-14px);filter:blur(3px)} 45%{opacity:1;transform:scale(0.91) translateY(5px);filter:blur(0)} 68%{transform:scale(1.04) translateY(-2px)} 85%{transform:scale(0.985) translateY(1px)} 100%{transform:scale(1) translateY(0)} }
+@keyframes table-shake { 0%,100%{transform:translate(0,0)} 15%{transform:translate(-3px,2px)} 35%{transform:translate(3px,-2px)} 55%{transform:translate(-2px,3px)} 75%{transform:translate(2px,-1px)} }
+.table-shake { animation: table-shake 0.55s cubic-bezier(0.36,0.07,0.19,0.97) forwards; }
 @keyframes dieReveal { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
 @keyframes floatBubble {
@@ -192,9 +152,12 @@ const Tracker = ({ value, max, onChange, type = "dot", slant = false }) => {
           <button
             key={i}
             onClick={() => handleClick(i)}
-            className={`transition-colors ${slant ? 'key-tick w-2 h-4' : 'w-3 h-3'} 
-              ${type === "box" ? "rounded-[2px]" : "rounded-full"} border 
-              ${isFilled ? "bg-red-600 border-red-600" : "bg-transparent border-neutral-600 hover:border-neutral-400"}
+            className={`tracker-dot ${slant ? 'key-tick w-2 h-4' : 'w-3 h-3'}
+              ${type === "box" ? "rounded-[2px]" : "rounded-full"} border
+              ${isFilled
+                ? "bg-red-600 border-red-600 shadow-[0_0_6px_rgba(239,68,68,0.5)]"
+                : "bg-transparent border-neutral-600 hover:border-neutral-400"
+              }
               ${animatingIndex === i ? animType : ""}`}
             aria-label={`Set to ${i + 1}`}
           />
@@ -218,7 +181,7 @@ const LoadoutBoxes = ({ max, checked, onChange }) => {
   };
   if (max === 0) return null;
   return (
-    <div className="flex gap-[1px] items-center bg-[#09090b] p-[2px] rounded border border-neutral-800 shrink-0">
+    <div className="flex gap-[1px] items-center bg-[var(--bg0)] p-[2px] rounded border border-neutral-800 shrink-0">
       {Array.from({ length: max }).map((_, i) => {
         const isFilled = i < checked;
         return (
@@ -262,12 +225,12 @@ const ClockSVG = ({ segments, filled, className = "w-24 h-24" }) => {
       "Z"
     ].join(" ");
     paths.push(
-      <path key={i} d={pathData} fill={i < filled ? fillColor : "transparent"} stroke="#27272a" strokeWidth="2" />
+      <path key={i} d={pathData} fill={i < filled ? fillColor : "transparent"} stroke="var(--border)" strokeWidth="2" />
     );
   }
   return (
     <svg viewBox="0 0 100 100" className={`${className} block mx-auto drop-shadow-md`}>
-       <circle cx="50" cy="50" r="48" fill="#0f0f11" stroke="#27272a" strokeWidth="2" />
+       <circle cx="50" cy="50" r="48" fill="var(--bg1)" stroke="var(--border)" strokeWidth="2" />
        {paths}
     </svg>
   );
@@ -285,7 +248,7 @@ const PIP_LAYOUTS = {
 const DieFace = ({ value, spinning, isBest, isBargain, size = 56 }) => {
   const pips = PIP_LAYOUTS[value] || PIP_LAYOUTS[1];
   const getOutcomeStyles = () => {
-    const defaults = { pip: '#6b7280', border: '#27272a', bg: '#111113', shadow: 'none' };
+    const defaults = { pip: 'var(--text-muted)', border: 'var(--border)', bg: 'var(--bg2)', shadow: 'none' };
     if (spinning || !isBest) return defaults;
     if (value === 6) return { pip: '#22c55e', border: '#14532d', bg: '#0a1a0a', shadow: '0 0 15px rgba(34,197,94,0.2)' };
     else if (value >= 4) return { pip: '#f97316', border: '#9a3412', bg: '#1c0c03', shadow: '0 0 15px rgba(249,115,22,0.15)' };
@@ -296,7 +259,7 @@ const DieFace = ({ value, spinning, isBest, isBargain, size = 56 }) => {
     <div style={{
       width: size, height: size,
       background: outcome.bg,
-      border: `1px solid ${spinning ? (isBargain ? '#ef4444' : '#27272a') : outcome.border}`,
+      border: `1px solid ${spinning ? (isBargain ? '#ef4444' : 'var(--border)') : outcome.border}`,
       borderRadius: 10,
       overflow: 'hidden',
       position: 'relative',
@@ -335,29 +298,32 @@ const DiceModal = ({ onClose }) => {
   const [rolling, setRolling] = useState(false);
   const [results, setResults] = useState([]);
   const [outcome, setOutcome] = useState(null);
-  const [bestIdx, setBestIdx] = useState(-1);
+  const [bestIndices, setBestIndices] = useState([]);
   const roll = () => {
     if (rolling) return;
     setRolling(true);
     setOutcome(null);
     setResults([]);
-    setBestIdx(-1);
+    setBestIndices([]);
     const isZeroPool = poolSize === 0 && !devilsBargain;
     const actualDiceCount = isZeroPool ? 2 : (poolSize + (devilsBargain ? 1 : 0));
     setTimeout(() => {
       const rolled = Array.from({ length: actualDiceCount }, () => Math.floor(Math.random() * 6) + 1);
       setResults(rolled);
+      const sixes = rolled.filter(v => v === 6).length;
       let finalValue;
-      let targetIdx;
+      let highlighted;
       if (isZeroPool) {
         finalValue = Math.min(...rolled);
-        targetIdx = rolled.indexOf(finalValue);
+        highlighted = [rolled.indexOf(finalValue)];
+      } else if (sixes >= 2) {
+        finalValue = 6;
+        highlighted = rolled.reduce((acc, v, i) => { if (v === 6) acc.push(i); return acc; }, []);
       } else {
         finalValue = Math.max(...rolled);
-        targetIdx = rolled.indexOf(finalValue);
+        highlighted = [rolled.indexOf(finalValue)];
       }
-      setBestIdx(targetIdx);
-      const sixes = rolled.filter(v => v === 6).length;
+      setBestIndices(highlighted);
       let out;
       if (sixes >= 2 && !isZeroPool) out = { label: "CRITICAL", sub: "Exceptional result!", color: "#ef4444" };
       else if (finalValue === 6) out = { label: "SUCCESS", sub: "Full effect.", color: "#22c55e" };
@@ -370,7 +336,7 @@ const DiceModal = ({ onClose }) => {
   };
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className={`w-full max-w-md flex flex-col items-center gap-6 py-8 px-6 rounded-3xl border shadow-2xl transition-colors duration-500 relative animate-scale-in ${rolling && devilsBargain ? 'bg-[#1a0a0a] border-red-900/50' : 'bg-[#09090b] border-neutral-800'}`} onClick={e => e.stopPropagation()}>
+      <div className={`w-full max-w-md flex flex-col items-center gap-6 py-8 px-6 rounded-3xl border shadow-2xl transition-colors duration-500 relative animate-scale-in ${rolling && devilsBargain ? 'bg-[#1a0a0a] border-red-900/50' : 'bg-[var(--bg0)] border-neutral-800'}`} onClick={e => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-neutral-500 hover:text-white p-2 bg-neutral-900 rounded-full transition-colors">
           <X size={16} />
         </button>
@@ -378,15 +344,15 @@ const DiceModal = ({ onClose }) => {
           <p className="text-[10px] font-black uppercase tracking-widest text-neutral-600">Quick Tool</p>
           <h2 className="text-xl font-black uppercase tracking-widest text-white">Action Roll</h2>
         </div>
-        <div className="flex items-center gap-6 bg-[#111113] border border-neutral-800 rounded-2xl px-8 py-4 shadow-inner">
-          <button onClick={() => setPoolSize(p => Math.max(0, p - 1))} disabled={rolling} className="w-10 h-10 rounded-xl bg-[#18181b] border border-neutral-700 text-white text-xl hover:bg-neutral-800 transition-colors">−</button>
+        <div className="flex items-center gap-6 bg-[var(--bg2)] border border-neutral-800 rounded-2xl px-8 py-4 shadow-inner">
+          <button onClick={() => setPoolSize(p => Math.max(0, p - 1))} disabled={rolling} className="w-10 h-10 rounded-xl bg-[var(--bg3)] border border-neutral-700 text-white text-xl hover:bg-neutral-800 transition-colors">−</button>
           <div className="text-center w-20">
             <span className="text-4xl font-black text-white">{poolSize}</span>
             <p className="text-[9px] font-black uppercase text-neutral-500 mt-1">
               {poolSize === 0 && !devilsBargain ? "2d6 LOW" : "BASE DICE"}
             </p>
           </div>
-          <button onClick={() => setPoolSize(p => Math.min(10, p + 1))} disabled={rolling} className="w-10 h-10 rounded-xl bg-[#18181b] border border-neutral-700 text-white text-xl hover:bg-neutral-800 transition-colors">+</button>
+          <button onClick={() => setPoolSize(p => Math.min(10, p + 1))} disabled={rolling} className="w-10 h-10 rounded-xl bg-[var(--bg3)] border border-neutral-700 text-white text-xl hover:bg-neutral-800 transition-colors">+</button>
         </div>
         <button 
           onClick={() => setDevilsBargain(!devilsBargain)}
@@ -396,31 +362,39 @@ const DiceModal = ({ onClose }) => {
           <div className={`w-3.5 h-3.5 rounded-full border-2 transition-all ${devilsBargain ? 'bg-red-600 border-red-400' : 'border-neutral-700'}`} />
           <span className="text-[10px] font-black uppercase tracking-widest">Devil's Bargain (+1d)</span>
         </button>
-        <div className={`flex gap-3 justify-center flex-wrap min-h-[60px] ${rolling && devilsBargain ? 'shake-it' : ''}`}>
+        <div className={`flex gap-3 justify-center flex-wrap min-h-[60px] items-center ${rolling ? 'table-shake' : ''}`}
+          style={{ '--die-size': '50px' }}>
           {Array.from({ length: (poolSize === 0 && !devilsBargain) ? 2 : (poolSize + (devilsBargain ? 1 : 0)) }).map((_, i) => (
-            <div key={i} style={{ animation: !rolling && results[i] ? `dieReveal 0.3s ease-out both` : 'none' }}>
-              <DieFace value={results[i] || 1} spinning={rolling} isBest={i === bestIdx} isBargain={devilsBargain} size={50} />
+            <div key={i} style={{ animation: !rolling && results[i] ? `dieSlam 0.5s cubic-bezier(0.16,1,0.3,1) ${i * 65}ms both` : 'none' }}>
+              <DieFace value={results[i] || 1} spinning={rolling} isBest={bestIndices.includes(i)} isBargain={devilsBargain} size={50} />
             </div>
           ))}
         </div>
-        <div className="text-center h-16 flex flex-col justify-center w-full">
+        <div className="text-center min-h-[4rem] flex flex-col justify-center w-full relative">
           {outcome && !rolling && (
-            <div className="animate-fade-in bg-[#111113] border border-neutral-800 rounded-xl py-2 shadow-sm">
-              <div className="text-2xl font-black tracking-tighter uppercase" style={{ color: outcome.color }}>{outcome.label}</div>
-              <div className="text-neutral-500 text-[11px] font-medium">{outcome.sub}</div>
+            <div className="animate-spring-in relative overflow-hidden rounded-xl py-3 border border-neutral-800 shadow-sm"
+              style={{ background:"var(--bg2)" }}>
+              <div className="absolute inset-0 pointer-events-none rounded-xl"
+                style={{ background:`radial-gradient(ellipse at center, ${outcome.color}18 0%, transparent 70%)` }} />
+              <div className="text-2xl font-black tracking-tighter uppercase relative z-10"
+                style={{ color: outcome.color, textShadow:`0 0 24px ${outcome.color}50` }}>
+                {outcome.label}
+              </div>
+              <div className="text-neutral-500 text-[11px] font-medium relative z-10">{outcome.sub}</div>
             </div>
           )}
         </div>
         <button
           onClick={roll}
           disabled={rolling}
-          className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 ${devilsBargain && !rolling ? 'hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]' : ''}`}
+          className={`roll-btn ${devilsBargain ? 'roll-btn-bargain' : ''} w-full py-4 rounded-xl font-black uppercase tracking-widest active:scale-95`}
           style={{
-            background: rolling ? '#27272a' : (devilsBargain ? '#ef4444' : '#fff'),
+            background: rolling ? 'var(--bg3)' : devilsBargain ? 'linear-gradient(135deg,#dc2626,#991b1b)' : 'linear-gradient(135deg,#ffffff,#e5e5e5)',
             color: rolling ? '#52525b' : '#000',
+            boxShadow: !rolling && !devilsBargain ? '0 4px 16px rgba(255,255,255,0.1),inset 0 1px 0 rgba(255,255,255,0.4)' : !rolling ? '0 4px 16px rgba(220,38,38,0.25)' : 'none',
           }}
         >
-          {rolling ? 'Calling Fate...' : 'Roll Pool'}
+          {rolling ? 'Calling Fate…' : 'Roll Pool'}
         </button>
       </div>
     </div>
@@ -455,12 +429,12 @@ const MobileFloatingNav = ({ sections, activeSection, onSelect }) => {
             transition: `opacity 0.18s ease ${idx * 0.06}s, transform 0.18s cubic-bezier(0.16,1,0.3,1) ${idx * 0.06}s`,
           }}
         >
-          <span className="bg-[#111113] border border-neutral-700 text-neutral-300 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shadow-lg whitespace-nowrap">
+          <span className="bg-[var(--bg2)] border border-neutral-700 text-neutral-300 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shadow-lg whitespace-nowrap">
             {section.label}
           </span>
           <button
             onClick={() => handleSelect(section.id)}
-            className="w-12 h-12 rounded-full bg-[#18181b] border border-neutral-700 shadow-xl flex items-center justify-center text-neutral-300 hover:bg-neutral-700 hover:text-white transition-all active:scale-95"
+            className="w-12 h-12 rounded-full bg-[var(--bg3)] border border-neutral-700 shadow-xl flex items-center justify-center text-neutral-300 hover:bg-neutral-700 hover:text-white transition-all active:scale-95"
             style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.6)' }}
           >
             {section.icon}
@@ -469,8 +443,13 @@ const MobileFloatingNav = ({ sections, activeSection, onSelect }) => {
       ))}
       <button
         onClick={() => open ? handleClose() : handleOpen()}
-        className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 ${open ? 'bg-neutral-700 border-neutral-500' : 'bg-red-700 border-red-500 float-bubble'} border-2`}
-        style={{ boxShadow: open ? '0 4px 20px rgba(0,0,0,0.8)' : '0 4px 24px rgba(220,38,38,0.5)', transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)' }}
+        className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center active:scale-90 border-2 ${open ? 'bg-neutral-700 border-neutral-500' : 'bg-red-700 border-red-600 animate-fab-bob'}`}
+        style={{
+          boxShadow: open
+            ? '0 4px 20px rgba(0,0,0,0.8)'
+            : '0 4px 28px rgba(220,38,38,0.55), 0 0 0 4px rgba(220,38,38,0.12)',
+          transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)',
+        }}
       >
         {open ? <X size={22} className="text-white" /> : (activeInfo?.icon ? React.cloneElement(activeInfo.icon, { size: 22, className: "text-white" }) : <Menu size={22} className="text-white" />)}
       </button>
@@ -482,10 +461,10 @@ const MobileFloatingNav = ({ sections, activeSection, onSelect }) => {
 // --- CURRENCY MODAL ---
 const CurrencyModal = ({ activeChar, updateChar, currencyName, stashName, onClose }) => (
   <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-    <div className="w-full max-w-sm bg-[#111113] border border-neutral-700 rounded-t-3xl p-6 pb-8 animate-slide-up" onClick={e => e.stopPropagation()}>
+    <div className="w-full max-w-sm bg-[var(--bg2)] border border-neutral-700 rounded-t-3xl p-6 pb-8 animate-slide-up" onClick={e => e.stopPropagation()}>
       <div className="w-10 h-1 bg-neutral-700 rounded-full mx-auto mb-6" />
       <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col items-center gap-3 bg-[#09090b] border border-neutral-800 rounded-xl p-4">
+        <div className="flex flex-col items-center gap-3 bg-[var(--bg0)] border border-neutral-800 rounded-xl p-4">
           <span className="font-black uppercase tracking-widest text-neutral-400 text-xs">{currencyName}</span>
           <div className="flex items-center gap-3">
             <button onClick={() => updateChar({coin: Math.max(0, activeChar.coin - 1)})} className="w-8 h-8 rounded-lg bg-neutral-800 text-white flex items-center justify-center hover:bg-neutral-700 transition-colors"><Minus size={14}/></button>
@@ -493,7 +472,7 @@ const CurrencyModal = ({ activeChar, updateChar, currencyName, stashName, onClos
             <button onClick={() => updateChar({coin: Math.min(4, activeChar.coin + 1)})} className="w-8 h-8 rounded-lg bg-neutral-800 text-white flex items-center justify-center hover:bg-neutral-700 transition-colors"><Plus size={14}/></button>
           </div>
         </div>
-        <div className="flex flex-col items-center gap-3 bg-[#09090b] border border-neutral-800 rounded-xl p-4">
+        <div className="flex flex-col items-center gap-3 bg-[var(--bg0)] border border-neutral-800 rounded-xl p-4">
           <span className="font-black uppercase tracking-widest text-neutral-400 text-xs">{stashName}</span>
           <div className="flex items-center gap-3">
             <button onClick={() => updateChar({stash: Math.max(0, activeChar.stash - 1)})} className="w-8 h-8 rounded-lg bg-neutral-800 text-white flex items-center justify-center hover:bg-neutral-700 transition-colors"><Minus size={14}/></button>
@@ -516,8 +495,8 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
     const title = isHound ? "Loyal, Clever Pet" : "Loyal Resonance Entity";
     const expert = isHound ? "Expert: Hunter" : "Expert: Paranormal Assistant";
     return (
-      <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
-        <div className="p-3 border-b border-neutral-800 bg-[#09090b]/50 flex justify-between items-center">
+      <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
+        <div className="p-3 border-b border-neutral-800 bg-[var(--bg0)]/50 flex justify-between items-center">
           <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">{title}</h3>
           <span className="text-[10px] font-bold text-neutral-500 uppercase">Cohort ({expert})</span>
         </div>
@@ -560,8 +539,8 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
   if (p === 'Hull') {
      const questions = ["What was my name and heritage?", "What did I leave unfinished?", "What was my background? Who or what did I love most in life?", "What crime was I sentenced to be Reformed for?"];
      return (
-        <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
-           <div className="p-3 border-b border-neutral-800 bg-[#09090b]/50 flex justify-between items-center">
+        <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
+           <div className="p-3 border-b border-neutral-800 bg-[var(--bg0)]/50 flex justify-between items-center">
               <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">Hull Traits & Human Memories</h3>
               <div className="flex items-center gap-2">
                  <span className="text-[10px] font-bold text-neutral-500 uppercase">Suspicion</span>
@@ -579,7 +558,7 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
               </div>
               <div className="col-span-full border-t border-neutral-800 my-2" />
               {questions.map((q, i) => (
-                 <div key={i} className="flex gap-4 items-start bg-[#09090b] p-3 rounded-xl border border-neutral-800">
+                 <div key={i} className="flex gap-4 items-start bg-[var(--bg0)] p-3 rounded-xl border border-neutral-800">
                     <div className="flex-1">
                        <label className="text-[10px] font-black tracking-widest text-neutral-500">{q}</label>
                        <textarea value={(c.hullAns || [])[i] || ""} onChange={e => {
@@ -603,8 +582,8 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
   }
   if (p === 'Intellectual') {
      return (
-      <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
-        <div className="p-3 border-b border-neutral-800 bg-[#09090b]/50 flex justify-between items-center">
+      <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
+        <div className="p-3 border-b border-neutral-800 bg-[var(--bg0)]/50 flex justify-between items-center">
           <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">Sparkmind Assistant</h3>
           <span className="text-[10px] font-bold text-neutral-500 uppercase">Cohort (Expert)</span>
         </div>
@@ -659,8 +638,8 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
   if (p === 'Radical') {
      const RADICAL_EXPLOSIVES = ["Smoke", "Incendiary", "Concussive", "Electroplasmic", "Flash", "Gas", "Frag", "Shrapnel"];
      return (
-       <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
-         <div className="p-3 border-b border-neutral-800 bg-[#09090b]/50 flex justify-between items-center">
+       <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
+         <div className="p-3 border-b border-neutral-800 bg-[var(--bg0)]/50 flex justify-between items-center">
             <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">Explosives Arsenal</h3>
             <div className="flex items-center gap-2">
                <span className="text-[10px] font-bold text-neutral-500 uppercase">Bandolier</span>
@@ -687,8 +666,8 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
   }
   if (p === 'Operative') {
      return (
-       <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
-         <div className="p-3 border-b border-neutral-800 bg-[#09090b]/50">
+       <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
+         <div className="p-3 border-b border-neutral-800 bg-[var(--bg0)]/50">
             <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">Backing Faction</h3>
          </div>
          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -710,8 +689,8 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
   }
   if (p === 'Swinger') {
      return (
-      <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
-        <div className="p-3 border-b border-neutral-800 bg-[#09090b]/50 flex justify-between items-center">
+      <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
+        <div className="p-3 border-b border-neutral-800 bg-[var(--bg0)]/50 flex justify-between items-center">
           <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">Two-Seat Autopod</h3>
         </div>
         <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -751,8 +730,8 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
   }
   if (p === 'Veteran') {
      return (
-       <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
-         <div className="p-3 border-b border-neutral-800 bg-[#09090b]/50">
+       <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
+         <div className="p-3 border-b border-neutral-800 bg-[var(--bg0)]/50">
             <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">Used and Discarded</h3>
          </div>
          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -772,8 +751,8 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
   }
   if (p === 'Ghost/Echo') {
      return (
-       <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
-         <div className="p-3 border-b border-neutral-800 bg-[#09090b]/50">
+       <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
+         <div className="p-3 border-b border-neutral-800 bg-[var(--bg0)]/50">
             <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">Echo Irregularities</h3>
          </div>
          <div className="p-4">
@@ -785,8 +764,8 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
   if (p === 'Vampire') {
      const strictures = ["Dayfire", "Slumber", "Forbidden", "Repelled", "Bestial", "Bound"];
      return (
-       <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
-         <div className="p-3 border-b border-neutral-800 bg-[#09090b]/50">
+       <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
+         <div className="p-3 border-b border-neutral-800 bg-[var(--bg0)]/50">
             <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">Strictures</h3>
          </div>
          <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3">
@@ -809,8 +788,8 @@ const CustomPlaybookSection = ({ char, updateChar }) => {
   }
   if (p === 'Time Traveler') {
      return (
-       <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
-         <div className="p-3 border-b border-neutral-800 bg-[#09090b]/50">
+       <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm overflow-hidden animate-fade-in">
+         <div className="p-3 border-b border-neutral-800 bg-[var(--bg0)]/50">
             <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">Mission Details</h3>
          </div>
          <div className="p-4">
@@ -861,7 +840,7 @@ const AbilitiesScreen = ({ activeChar, updateChar, updateNested }) => (
       { key: 'prowess', xpKey: 'prowess', actions: ['finesse','prowl','skirmish','wreck'] },
       { key: 'resolve', xpKey: 'resolve', actions: ['attune','command','consort','sway'] },
     ].map(({ key, xpKey, actions }) => (
-      <div key={key} className="bg-[#111113] border border-neutral-800 rounded-xl p-5 shadow-sm flex flex-col gap-4">
+      <div key={key} className="bg-[var(--bg2)] border border-neutral-800 rounded-xl p-5 shadow-sm flex flex-col gap-4">
         <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
           <h3 className="font-black uppercase tracking-widest text-neutral-300 text-sm capitalize">{key}</h3>
           <Tracker value={activeChar.xp[xpKey]} max={6} onChange={(v) => updateNested('xp', xpKey, v)} type="box" slant />
@@ -879,7 +858,7 @@ const AbilitiesScreen = ({ activeChar, updateChar, updateNested }) => (
 
 const TraitsScreen = ({ activeChar, updateChar, isB68, traumaName }) => (
   <div className="space-y-4 h-full screen-scroll pb-4">
-    <div className="bg-[#111113] border border-neutral-800 rounded-xl p-5 shadow-sm">
+    <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl p-5 shadow-sm">
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-1">
           <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Look</label>
@@ -903,7 +882,7 @@ const TraitsScreen = ({ activeChar, updateChar, isB68, traumaName }) => (
     </div>
 
     {/* Keys */}
-    <div className="bg-[#111113] border border-neutral-800 rounded-xl p-5 shadow-sm space-y-3">
+    <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl p-5 shadow-sm space-y-3">
       <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
         <h3 className="font-black uppercase tracking-widest text-neutral-500 text-[10px]">Keys</h3>
         <h3 className="font-black uppercase tracking-widest text-neutral-500 text-[10px]">{isB68 ? 'Deadlocks' : 'Traumas'}</h3>
@@ -914,8 +893,8 @@ const TraitsScreen = ({ activeChar, updateChar, isB68, traumaName }) => (
             const newKeys = [...activeChar.keys];
             newKeys[i] = { ...k, text: e.target.value };
             updateChar({ keys: newKeys });
-          }} className="flex-1 min-w-0 bg-[#09090b] border border-neutral-800 rounded-l-full px-3 py-1 text-xs text-neutral-300 outline-none focus:border-red-500 transition-colors" placeholder="Key..." />
-          <div className="shrink-0 bg-[#09090b] border border-neutral-800 px-2 py-1 flex items-center justify-center">
+          }} className="flex-1 min-w-0 bg-[var(--bg0)] border border-neutral-800 rounded-l-full px-3 py-1 text-xs text-neutral-300 outline-none focus:border-red-500 transition-colors" placeholder="Key..." />
+          <div className="shrink-0 bg-[var(--bg0)] border border-neutral-800 px-2 py-1 flex items-center justify-center">
             <Tracker value={k.xp} max={3} onChange={(v) => {
               const newKeys = [...activeChar.keys];
               newKeys[i] = { ...k, xp: v };
@@ -933,7 +912,7 @@ const TraitsScreen = ({ activeChar, updateChar, isB68, traumaName }) => (
             const newKeys = [...activeChar.keys];
             newKeys[i] = { ...k, deadlockText: e.target.value };
             updateChar({ keys: newKeys });
-          }} className="flex-1 min-w-0 bg-[#09090b] border border-neutral-800 rounded-r-full px-3 py-1 text-xs text-neutral-400 outline-none focus:border-red-500 transition-colors" placeholder={isB68 ? "Deadlock..." : "Trauma..."} disabled={!k.deadlocked} />
+          }} className="flex-1 min-w-0 bg-[var(--bg0)] border border-neutral-800 rounded-r-full px-3 py-1 text-xs text-neutral-400 outline-none focus:border-red-500 transition-colors" placeholder={isB68 ? "Deadlock..." : "Trauma..."} disabled={!k.deadlocked} />
         </div>
       ))}
       {(activeChar.keys || []).length < 4 && (
@@ -962,12 +941,12 @@ const SpecialScreen = ({ activeChar, updateChar, updateNested, isB68, traumaName
 
   return (
     <div className="space-y-4 screen-scroll pb-4 h-full">
-      <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm">
+      <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm">
         <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
           <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">Special Abilities</h3>
           <Tracker value={activeChar.xp.playbook} max={8} onChange={(v) => updateNested('xp', 'playbook', v)} type="box" slant />
         </div>
-        <div className="p-4 space-y-3 bg-[#09090b]/50 rounded-b-xl">
+        <div className="p-4 space-y-3 bg-[var(--bg0)]/50 rounded-b-xl">
           {(PLAYBOOKS[activeChar.game]?.[activeChar.playbook]?.abilities || []).map(ability => {
             const isChecked = (activeChar.selectedAbilities || []).includes(ability);
             return (
@@ -1027,8 +1006,8 @@ const ItemsScreen = ({ activeChar, updateChar, updateNested, isB68 }) => {
   const playbookItems = PLAYBOOK_ITEMS[activeChar.playbook] || [];
 
   return (
-    <div className="bg-[#111113] border border-neutral-800 rounded-xl shadow-sm flex flex-col h-full screen-scroll">
-      <div className="p-4 border-b border-neutral-800 shrink-0 flex items-center justify-between sticky top-0 bg-[#111113] z-10">
+    <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl shadow-sm flex flex-col h-full screen-scroll">
+      <div className="p-4 border-b border-neutral-800 shrink-0 flex items-center justify-between sticky top-0 bg-[var(--bg2)] z-10">
         <h3 className="font-black uppercase tracking-widest text-neutral-300 text-xs">
           Items <span className={`ml-2 tracking-normal font-bold ${currentLoad > maxLoad ? 'text-red-400' : 'text-neutral-500'}`}>({currentLoad}/{maxLoad} LOAD)</span>
         </h3>
@@ -1079,7 +1058,7 @@ const ItemsScreen = ({ activeChar, updateChar, updateNested, isB68 }) => {
         </div>
       </div>
 
-      <div className="p-5 bg-[#09090b]/50 flex flex-col gap-5">
+      <div className="p-5 bg-[var(--bg0)]/50 flex flex-col gap-5">
         {playbookItems.length > 0 && (
           <div className="grid grid-cols-2 gap-x-6 gap-y-3">
             {playbookItems.map((item, idx) => (
@@ -1152,7 +1131,7 @@ const CombatScreen = ({ activeChar, updateChar, updateNested, isB68, traumaName 
   return (
     <div className="space-y-4 screen-scroll pb-4 h-full">
       {/* Stress */}
-      <div className="bg-[#111113] border border-neutral-800 rounded-xl p-5 shadow-sm">
+      <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="font-black uppercase tracking-widest text-neutral-300 text-sm">Stress</h3>
           <Tracker value={activeChar.stress} max={9} onChange={(v) => updateChar({stress: v})} type="box" />
@@ -1160,7 +1139,7 @@ const CombatScreen = ({ activeChar, updateChar, updateNested, isB68, traumaName 
       </div>
 
       {/* Harm + Healing */}
-      <div className="bg-[#111113] border border-neutral-800 rounded-xl p-5 shadow-sm">
+      <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl p-5 shadow-sm">
         <div className="flex gap-4 items-start">
           <div className="flex-1 flex flex-col gap-1.5 border-r border-neutral-800 pr-4">
             <div className="flex items-center justify-between border-b border-neutral-800 pb-1 mb-1">
@@ -1205,7 +1184,7 @@ const CombatScreen = ({ activeChar, updateChar, updateNested, isB68, traumaName 
       </div>
 
       {/* Keys in combat for quick reference */}
-      <div className="bg-[#111113] border border-neutral-800 rounded-xl p-5 shadow-sm space-y-3">
+      <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl p-5 shadow-sm space-y-3">
         <div className="flex items-center justify-between border-b border-neutral-800 pb-2 mb-1">
           <h3 className="font-black uppercase tracking-widest text-neutral-500 text-[10px]">Keys</h3>
           <h3 className="font-black uppercase tracking-widest text-neutral-500 text-[10px]">{isB68 ? 'Deadlocks' : 'Traumas'}</h3>
@@ -1216,8 +1195,8 @@ const CombatScreen = ({ activeChar, updateChar, updateNested, isB68, traumaName 
               const newKeys = [...activeChar.keys];
               newKeys[i] = { ...k, text: e.target.value };
               updateChar({ keys: newKeys });
-            }} className="flex-1 min-w-0 bg-[#09090b] border border-neutral-800 rounded-l-full px-3 py-1 text-xs text-neutral-300 outline-none focus:border-red-500 transition-colors" placeholder="Key..." />
-            <div className="shrink-0 bg-[#09090b] border border-neutral-800 px-2 py-1 flex items-center justify-center">
+            }} className="flex-1 min-w-0 bg-[var(--bg0)] border border-neutral-800 rounded-l-full px-3 py-1 text-xs text-neutral-300 outline-none focus:border-red-500 transition-colors" placeholder="Key..." />
+            <div className="shrink-0 bg-[var(--bg0)] border border-neutral-800 px-2 py-1 flex items-center justify-center">
               <Tracker value={k.xp} max={3} onChange={(v) => {
                 const newKeys = [...activeChar.keys];
                 newKeys[i] = { ...k, xp: v };
@@ -1235,7 +1214,7 @@ const CombatScreen = ({ activeChar, updateChar, updateNested, isB68, traumaName 
               const newKeys = [...activeChar.keys];
               newKeys[i] = { ...k, deadlockText: e.target.value };
               updateChar({ keys: newKeys });
-            }} className="flex-1 min-w-0 bg-[#09090b] border border-neutral-800 rounded-r-full px-3 py-1 text-xs text-neutral-400 outline-none focus:border-red-500 transition-colors" placeholder={isB68 ? "Deadlock..." : "Trauma..."} disabled={!k.deadlocked} />
+            }} className="flex-1 min-w-0 bg-[var(--bg0)] border border-neutral-800 rounded-r-full px-3 py-1 text-xs text-neutral-400 outline-none focus:border-red-500 transition-colors" placeholder={isB68 ? "Deadlock..." : "Trauma..."} disabled={!k.deadlocked} />
           </div>
         ))}
       </div>
@@ -1274,6 +1253,30 @@ const CharacterManager = ({
   const debounceTimer = useRef(null);
   const pendingUpdates = useRef({});
   const activeChar = characters.find(c => c.id === activeCharId);
+  const avatarInputRef = useRef(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  // Build the PocketBase thumb URL for a character's avatar
+  const getAvatarUrl = (char) => {
+    if (!char?.avatar) return null;
+    return `${activePb.baseUrl}/api/files/characters/${char.id}/${char.avatar}?thumb=250x250`;
+  };
+
+  // Upload a new avatar file for a character
+  const uploadAvatar = async (charId, file) => {
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('avatar', file);
+      const updated = await activePb.collection('characters').update(charId, fd, { '$autoCancel': false });
+      setCharacters(prev => prev.map(c => c.id === charId ? updated : c));
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   // Detect mobile
   useEffect(() => {
@@ -1393,7 +1396,7 @@ const CharacterManager = ({
     return (
       <div className="space-y-6 animate-fade-in p-4 pb-32 max-w-5xl mx-auto">
         <style>{STYLES}</style>
-        <div className="bg-[#111113] border border-neutral-800 rounded-xl p-8 shadow-sm space-y-8">
+        <div className="bg-[var(--bg2)] border border-neutral-800 rounded-xl p-8 shadow-sm space-y-8">
           <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
             <h2 className="text-xl font-black uppercase tracking-widest text-neutral-200">New Scoundrel</h2>
             <button onClick={() => setIsCreating(false)} className="text-neutral-500 hover:text-white transition-colors"><X size={20}/></button>
@@ -1401,10 +1404,10 @@ const CharacterManager = ({
           <div className="space-y-4">
             <label className="block text-xs font-bold uppercase tracking-widest text-neutral-500">1. Choose Your Setting</label>
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => {setNewGame("BitD Core"); setNewPlaybook("");}} className={`py-3 px-4 rounded-xl border text-sm font-bold transition-all ${newGame === "BitD Core" ? "bg-neutral-800 border-neutral-600 text-white" : "bg-[#09090b] border-neutral-800 text-neutral-500 hover:border-neutral-700"}`}>
+              <button onClick={() => {setNewGame("BitD Core"); setNewPlaybook("");}} className={`py-3 px-4 rounded-xl border text-sm font-bold transition-all ${newGame === "BitD Core" ? "bg-neutral-800 border-neutral-600 text-white" : "bg-[var(--bg0)] border-neutral-800 text-neutral-500 hover:border-neutral-700"}`}>
                 Blades in the Dark
               </button>
-              <button onClick={() => {setNewGame("B68"); setNewPlaybook("");}} className={`py-3 px-4 rounded-xl border text-sm font-bold transition-all ${newGame === "B68" ? "bg-blue-900/40 border-blue-500/50 text-blue-200" : "bg-[#09090b] border-neutral-800 text-neutral-500 hover:border-neutral-700"}`}>
+              <button onClick={() => {setNewGame("B68"); setNewPlaybook("");}} className={`py-3 px-4 rounded-xl border text-sm font-bold transition-all ${newGame === "B68" ? "bg-blue-900/40 border-blue-500/50 text-blue-200" : "bg-[var(--bg0)] border-neutral-800 text-neutral-500 hover:border-neutral-700"}`}>
                 Blades '68
               </button>
             </div>
@@ -1413,7 +1416,7 @@ const CharacterManager = ({
             <label className="block text-xs font-bold uppercase tracking-widest text-neutral-500">2. Choose Your Playbook</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {Object.keys(PLAYBOOKS[newGame] || {}).map(playbookName => (
-                <button key={playbookName} onClick={() => setNewPlaybook(playbookName)} className={`py-2.5 px-3 rounded-lg border text-xs font-bold transition-all ${newPlaybook === playbookName ? "bg-red-900/40 border-red-500/50 text-red-200" : "bg-[#09090b] border-neutral-800 text-neutral-400 hover:border-neutral-600"}`}>
+                <button key={playbookName} onClick={() => setNewPlaybook(playbookName)} className={`py-2.5 px-3 rounded-lg border text-xs font-bold transition-all ${newPlaybook === playbookName ? "bg-red-900/40 border-red-500/50 text-red-200" : "bg-[var(--bg0)] border-neutral-800 text-neutral-400 hover:border-neutral-600"}`}>
                   {playbookName}
                 </button>
               ))}
@@ -1450,7 +1453,7 @@ const CharacterManager = ({
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search..."
-                  className="search-slide bg-[#111113] border border-neutral-700 rounded-lg px-3 py-1.5 text-sm text-neutral-200 outline-none focus:border-red-500 transition-colors w-48"
+                  className="search-slide bg-[var(--bg2)] border border-neutral-700 rounded-lg px-3 py-1.5 text-sm text-neutral-200 outline-none focus:border-red-500 transition-colors w-48"
                   onBlur={() => { if (!searchQuery) setSearchOpen(false); }}
                   onKeyDown={e => { if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(""); } }}
                 />
@@ -1474,23 +1477,41 @@ const CharacterManager = ({
           </div>
         </div>
         {filteredCharacters.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-neutral-600 border border-neutral-800/50 border-dashed rounded-2xl bg-[#111113]/50">
+          <div className="flex flex-col items-center justify-center py-24 text-neutral-600 border border-neutral-800/50 border-dashed rounded-2xl bg-[var(--bg2)]/50">
             <User size={32} className="mb-3 opacity-20" />
             <p className="text-center italic text-sm">{searchQuery ? "No characters match your search." : "Your crew is empty."}</p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredCharacters.map(c => (
-              <div key={c.id} className="bg-[#111113] border border-neutral-800 rounded-xl p-5 hover:border-neutral-600 transition-colors group relative cursor-pointer" onClick={() => setActiveCharId(c.id)}>
+              <div key={c.id} className="bg-[var(--bg2)] border border-neutral-800 rounded-xl p-5 hover:border-neutral-600 transition-colors group relative cursor-pointer" onClick={() => setActiveCharId(c.id)}>
                 <button onClick={(e) => { e.stopPropagation(); deleteChar(c.id); }} className="absolute top-3 right-3 text-neutral-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1" aria-label="Delete">
                   <Trash2 size={16} />
                 </button>
-                <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-neutral-600 flex justify-between pr-6">
-                  <span>{c.game === 'B68' ? "Blades '68" : "Core"}</span>
-                  <span className={c.game === 'B68' ? "text-blue-500" : ""}>{c.playbook}</span>
+                <div className="flex items-center gap-3 mb-3">
+                  {/* Avatar thumbnail */}
+                  <div
+                    className="relative w-12 h-12 rounded-full overflow-hidden bg-neutral-800 border border-neutral-700 flex items-center justify-center flex-shrink-0 group/av"
+                    onClick={e => { e.stopPropagation(); const inp = document.getElementById(`av-${c.id}`); inp && inp.click(); }}
+                  >
+                    {getAvatarUrl(c)
+                      ? <img src={getAvatarUrl(c)} alt="" className="w-full h-full object-cover" />
+                      : <span className="text-lg font-black text-neutral-500">{(c.name || '?')[0].toUpperCase()}</span>
+                    }
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/av:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-[9px] text-white font-bold uppercase tracking-wider">Edit</span>
+                    </div>
+                    <input id={`av-${c.id}`} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => uploadAvatar(c.id, e.target.files[0])} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-neutral-600 flex gap-2 pr-6">
+                      <span>{c.game === 'B68' ? "Blades '68" : "Core"}</span>
+                      <span className={c.game === 'B68' ? "text-blue-500" : ""}>{c.playbook}</span>
+                    </div>
+                    <h3 className="font-bold text-base text-white truncate">{c.name || "Unnamed"} {c.alias && `"${c.alias}"`}</h3>
+                  </div>
                 </div>
-                <h3 className="font-bold text-lg text-white mb-1 truncate">{c.name || "Unnamed"} {c.alias && `"${c.alias}"`}</h3>
-                <div className="flex gap-2 mt-4 pt-4 border-t border-neutral-800/50">
+                <div className="flex gap-2 pt-3 border-t border-neutral-800/50">
                   <div className="flex flex-col gap-1">
                     <span className="text-[10px] text-neutral-500 font-bold uppercase">Stress</span>
                     <Tracker value={c.stress} max={9} onChange={()=>{}} type="box" />
@@ -1520,7 +1541,7 @@ const CharacterManager = ({
   ];
 
   const renderDesktopTabs = () => (
-    <div className="flex bg-[#09090b] rounded-lg p-1 border border-neutral-800 shadow-inner gap-0.5">
+    <div className="flex bg-[var(--bg0)] rounded-lg p-1 border border-neutral-800 shadow-inner gap-0.5">
       {SECTIONS.map(s => (
         <button
           key={s.id}
@@ -1547,7 +1568,7 @@ const CharacterManager = ({
         return <CombatScreen activeChar={activeChar} updateChar={updateChar} updateNested={updateNested} isB68={isB68} traumaName={traumaName} />;
       case "notes":
         return (
-          <div className="animate-fade-in flex flex-col bg-[#111113] border border-neutral-800 rounded-2xl p-6 shadow-sm h-full min-h-[60vh]">
+          <div className="animate-fade-in flex flex-col bg-[var(--bg2)] border border-neutral-800 rounded-2xl p-6 shadow-sm h-full min-h-[60vh]">
             <div className="flex items-center gap-2 mb-4 text-neutral-500">
               <FileText size={14} />
               <h3 className="text-[10px] font-black uppercase tracking-widest">Personal Log & Notes</h3>
@@ -1556,7 +1577,7 @@ const CharacterManager = ({
               value={activeChar.notes || ""}
               onChange={e => updateChar({ notes: e.target.value })}
               placeholder="Record your scores, contacts, and personal goals here..."
-              className="flex-1 w-full bg-[#09090b] border border-neutral-800 rounded-xl p-6 text-neutral-200 outline-none focus:border-red-900/50 transition-colors resize-none font-sans leading-relaxed hide-scroll shadow-inner"
+              className="flex-1 w-full bg-[var(--bg0)] border border-neutral-800 rounded-xl p-6 text-neutral-200 outline-none focus:border-red-900/50 transition-colors resize-none font-sans leading-relaxed hide-scroll shadow-inner"
             />
           </div>
         );
@@ -1565,12 +1586,33 @@ const CharacterManager = ({
     }
   };
 
+  const charBgUrl = activeChar?.avatar
+    ? `${activePb.baseUrl}/api/files/characters/${activeChar.id}/${activeChar.avatar}?thumb=1200x0`
+    : null;
+
   return (
-    <div className="animate-fade-in max-w-5xl mx-auto pb-28 relative">
+    <div className={`animate-fade-in max-w-5xl mx-auto pb-28 relative ${charBgUrl ? 'has-char-bg' : ''}`}>
       <style>{STYLES}</style>
 
+      {/* ── Full-bleed character portrait background ── */}
+      {charBgUrl && (
+        <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+          {/* Desaturated portrait */}
+          <img
+            src={charBgUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover object-top"
+            style={{ filter: 'grayscale(1)', opacity: 0.45 }}
+          />
+          {/* Red tint — mimics a multiply layer */}
+          <div className="absolute inset-0" style={{ background: 'rgba(110, 0, 0, 0.55)' }} />
+          {/* Gradient: fade to near-black at the bottom so content stays readable */}
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.80) 80%)' }} />
+        </div>
+      )}
+
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center bg-[#111113] p-3 rounded-xl border border-neutral-800 sticky top-0 z-20 shadow-md mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center bg-[var(--bg2)] p-3 rounded-xl border border-neutral-800 sticky top-0 z-20 shadow-md mb-4">
         {/* Back + Mobile search/dice */}
         <div className="flex items-center justify-between w-full sm:w-auto gap-2">
           <button onClick={() => { setActiveCharId(null); setActiveSection("abilities"); }} className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-colors flex items-center gap-2">
@@ -1581,7 +1623,7 @@ const CharacterManager = ({
           <div className="flex sm:hidden items-center gap-2">
             {/* Search */}
             {searchOpen ? (
-              <div className="flex items-center gap-1 bg-[#111113] border border-neutral-700 rounded-lg px-2 py-1 relative">
+              <div className="flex items-center gap-1 bg-[var(--bg2)] border border-neutral-700 rounded-lg px-2 py-1 relative">
                 <input
                   ref={searchInputRef}
                   value={searchQuery}
@@ -1592,7 +1634,7 @@ const CharacterManager = ({
                 />
                 <button onClick={() => { setSearchOpen(false); setSearchQuery(""); setCompendiumResults([]); }} className="text-neutral-500 hover:text-white"><X size={12} /></button>
                 {compendiumResults.length > 0 && (
-                  <div className="absolute top-full right-0 mt-1 w-72 bg-[#111113] border border-neutral-700 rounded-xl shadow-2xl z-50 overflow-hidden max-h-72 overflow-y-auto hide-scroll">
+                  <div className="absolute top-full right-0 mt-1 w-72 bg-[var(--bg2)] border border-neutral-700 rounded-xl shadow-2xl z-50 overflow-hidden max-h-72 overflow-y-auto hide-scroll">
                     {compendiumResults.map(r => (
                       <button key={r.id} onClick={() => { setModal(r); setSearchOpen(false); setSearchQuery(""); setCompendiumResults([]); }}
                         className="w-full text-left px-3 py-2.5 hover:bg-neutral-800 transition-colors border-b border-neutral-800/50 last:border-0">
@@ -1622,6 +1664,23 @@ const CharacterManager = ({
 
         <div className="hidden sm:block h-4 w-px bg-neutral-800" />
 
+        {/* Avatar — detail header */}
+        <div
+          className="relative w-10 h-10 rounded-full overflow-hidden bg-neutral-800 border border-neutral-700 flex items-center justify-center flex-shrink-0 cursor-pointer group/hav"
+          onClick={() => avatarInputRef.current?.click()}
+          title="Change avatar"
+        >
+          {getAvatarUrl(activeChar)
+            ? <img src={getAvatarUrl(activeChar)} alt="" className="w-full h-full object-cover" />
+            : <span className="text-sm font-black text-neutral-500">{(activeChar.name || '?')[0].toUpperCase()}</span>
+          }
+          {avatarUploading
+            ? <div className="absolute inset-0 bg-black/70 flex items-center justify-center"><div className="w-4 h-4 border-2 border-neutral-500 border-t-white rounded-full animate-spin" /></div>
+            : <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/hav:opacity-100 transition-opacity flex items-center justify-center"><span className="text-[8px] text-white font-bold uppercase tracking-wider">Edit</span></div>
+          }
+          <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => uploadAvatar(activeChar.id, e.target.files[0])} />
+        </div>
+
         {/* Name / Alias / Playbook */}
         <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-3 items-center min-w-0">
           <input value={activeChar.name} onChange={e => updateChar({name: e.target.value})} className="w-full bg-transparent border-b border-neutral-800 sm:border-transparent hover:border-neutral-700 focus:border-red-500 pb-0.5 text-white font-bold outline-none transition-colors" placeholder="Name" />
@@ -1649,12 +1708,12 @@ const CharacterManager = ({
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search compendium..."
-                  className="search-slide bg-[#18181b] border border-neutral-700 rounded-lg px-3 py-1 text-sm text-neutral-200 outline-none focus:border-red-500 w-52"
+                  className="search-slide bg-[var(--bg3)] border border-neutral-700 rounded-lg px-3 py-1 text-sm text-neutral-200 outline-none focus:border-red-500 w-52"
                   onBlur={() => { if (!searchQuery) { setSearchOpen(false); setCompendiumResults([]); } }}
                   onKeyDown={e => { if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(""); setCompendiumResults([]); } }}
                 />
                 {compendiumResults.length > 0 && (
-                  <div className="absolute top-full right-0 mt-1 w-80 bg-[#111113] border border-neutral-700 rounded-xl shadow-2xl z-50 overflow-hidden max-h-80 overflow-y-auto hide-scroll">
+                  <div className="absolute top-full right-0 mt-1 w-80 bg-[var(--bg2)] border border-neutral-700 rounded-xl shadow-2xl z-50 overflow-hidden max-h-80 overflow-y-auto hide-scroll">
                     {compendiumResults.map(r => (
                       <button key={r.id} onClick={() => { setModal(r); setSearchOpen(false); setSearchQuery(""); setCompendiumResults([]); }}
                         className="w-full text-left px-3 py-2.5 hover:bg-neutral-800 transition-colors border-b border-neutral-800/50 last:border-0">

@@ -1,3 +1,313 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Blade's Edge Theme Variables ───────────────────────────────────────────── */
+:root {
+  --bg0: #09090b;
+  --bg1: #0f0f11;
+  --bg2: #111113;
+  --bg3: #1f1f1f;
+  --bg-sidebar-hdr: rgba(0,0,0,0.3);
+  --bg-app-hdr: rgba(12,12,14,0.95);
+  --bg-app-search: #09090b;
+  --border: #27272a;
+  --border-alt: #1f1f1f;
+  --text: #e5e5e5;
+  --text-bright: #ffffff;
+  --text-dim: #a1a1aa;
+  --text-muted: #6b7280;
+  --scrollbar-thumb: #27272a;
+  --grid-line: rgba(255,255,255,0.08);
+  --rule-title-bitd: #f5f5f5;
+  --rule-title-dc: #fecaca;
+  --rule-title-b68: #bfdbfe;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg0: #f5f5f7;
+  --bg1: #ffffff;
+  --bg2: #f0f0f2;
+  --bg3: #e4e4e7;
+  --bg-sidebar-hdr: rgba(230,230,235,0.9);
+  --bg-app-hdr: rgba(245,245,247,0.97);
+  --bg-app-search: #f5f5f7;
+  --border: #d4d4d8;
+  --border-alt: #e4e4e7;
+  --text: #18181b;
+  --text-bright: #09090b;
+  --text-dim: #52525b;
+  --text-muted: #71717a;
+  --scrollbar-thumb: #c4c4c8;
+  --grid-line: rgba(0,0,0,0.07);
+  --rule-title-bitd: #18181b;
+  --rule-title-dc: #991b1b;
+  --rule-title-b68: #1d4ed8;
+  color-scheme: light;
+}
+
+/* ── Light mode: Tailwind text classes ──────────────────────────────────────── */
+[data-theme="light"] .text-neutral-100 { color: #18181b !important; }
+[data-theme="light"] .text-neutral-200 { color: #27272a !important; }
+[data-theme="light"] .text-neutral-300 { color: #3f3f46 !important; }
+[data-theme="light"] .text-neutral-400 { color: #52525b !important; }
+[data-theme="light"] .text-neutral-500 { color: #71717a !important; }
+[data-theme="light"] .text-neutral-600 { color: #71717a !important; }
+[data-theme="light"] .text-white { color: #18181b !important; }
+
+/* ── Light mode: Tailwind border classes ────────────────────────────────────── */
+[data-theme="light"] .border-neutral-800 { border-color: var(--border) !important; }
+[data-theme="light"] .border-neutral-700 { border-color: #a1a1aa !important; }
+[data-theme="light"] .border-neutral-600 { border-color: #a1a1aa !important; }
+
+/* ── Light mode: Tailwind bg classes (standard) ─────────────────────────────── */
+[data-theme="light"] .bg-neutral-900 { background-color: var(--bg2) !important; }
+[data-theme="light"] .bg-neutral-900\/30 { background-color: rgba(230,230,233,0.3) !important; }
+[data-theme="light"] .bg-neutral-900\/50 { background-color: rgba(230,230,233,0.5) !important; }
+[data-theme="light"] .bg-neutral-800 { background-color: var(--bg3) !important; }
+[data-theme="light"] .bg-neutral-700 { background-color: #d4d4d8 !important; }
+[data-theme="light"] .hover\:bg-neutral-800:hover { background-color: var(--bg3) !important; }
+[data-theme="light"] .hover\:bg-neutral-900:hover { background-color: var(--bg2) !important; }
+[data-theme="light"] .hover\:text-white:hover { color: #09090b !important; }
+[data-theme="light"] .hover\:border-neutral-700:hover { border-color: #a1a1aa !important; }
+[data-theme="light"] .bg-black\/20 { background-color: rgba(0,0,0,0.04) !important; }
+
+/* ── Light mode: form elements (selects, inputs, textareas) ─────────────────── */
+[data-theme="light"] select,
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-theme="light"] textarea {
+  color-scheme: light;
+  background-color: var(--bg3);
+  color: var(--text);
+}
+
+
+/* ── Light mode: scrollbar & misc ───────────────────────────────────────────── */
+[data-theme="light"] .hide-scroll::-webkit-scrollbar-thumb,
+[data-theme="light"] .screen-scroll::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb) !important; }
+[data-theme="light"] .markdown-content strong { color: #18181b !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BLADE'S EDGE — PREMIUM ANIMATION SYSTEM
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Spring Physics Entrance ─────────────────────────────────────────────── */
+@keyframes springIn {
+  0%   { opacity: 0; transform: scale(0.92) translateY(14px); }
+  55%  { opacity: 1; transform: scale(1.018) translateY(-3px); }
+  75%  { transform: scale(0.996) translateY(1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Tile reveal — lighter, faster spring for grid cards */
+@keyframes tileReveal {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.95); }
+  60%  { opacity: 1; transform: translateY(-2px) scale(1.005); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Dice Slam ───────────────────────────────────────────────────────────── */
+/* Each die drops from above and slams into position */
+@keyframes dieSlam {
+  0%   { opacity: 0; transform: scale(1.3) translateY(-14px); filter: blur(3px); }
+  45%  { opacity: 1; transform: scale(0.91) translateY(5px); filter: blur(0); }
+  68%  { transform: scale(1.04) translateY(-2px); }
+  85%  { transform: scale(0.985) translateY(1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+/* Dice table shake on roll */
+@keyframes tableShake {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  15%  { transform: translate(-3px, 2px) rotate(-0.5deg); }
+  30%  { transform: translate(3px, -1px) rotate(0.5deg); }
+  45%  { transform: translate(-2px, 2px) rotate(-0.3deg); }
+  60%  { transform: translate(2px, -2px) rotate(0.3deg); }
+  75%  { transform: translate(-1px, 1px) rotate(-0.1deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+/* ── Outcome Reveal ──────────────────────────────────────────────────────── */
+@keyframes outcomeReveal {
+  0%   { opacity: 0; transform: scale(0.65) translateY(10px); filter: blur(6px); letter-spacing: 0.5em; }
+  55%  { opacity: 1; transform: scale(1.06) translateY(-3px); filter: blur(0); }
+  75%  { transform: scale(0.97) translateY(1px); letter-spacing: inherit; }
+  100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+/* Outcome sub-text fade up */
+@keyframes subReveal {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Critical Success Flash ──────────────────────────────────────────────── */
+@keyframes critFlash {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── Clock Glow ──────────────────────────────────────────────────────────── */
+@keyframes clockCompletePulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.5)); }
+  50%       { filter: drop-shadow(0 0 18px rgba(239, 68, 68, 0.85)) drop-shadow(0 0 6px rgba(239, 68, 68, 0.4)); }
+}
+
+/* ── Shimmer Sweep (card hover) ──────────────────────────────────────────── */
+@keyframes shimmerSweep {
+  from { transform: translateX(-120%) skewX(-18deg); }
+  to   { transform: translateX(260%) skewX(-18deg); }
+}
+
+/* ── Ambient Glow Pulse (for modals, active elements) ───────────────────── */
+@keyframes ambientGlow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 0.75; transform: scale(1.06); }
+}
+
+/* ── Floating action button bob ─────────────────────────────────────────── */
+@keyframes fabBob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+/* ── Tab Indicator Slide ─────────────────────────────────────────────────── */
+@keyframes pillSlide {
+  from { opacity: 0; transform: scaleX(0.5); }
+  to   { opacity: 1; transform: scaleX(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   UTILITY CLASSES
+   ─────────────────────────────────────────────────────────────────────── */
+
+.animate-spring-in    { animation: springIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+.animate-tile-in      { animation: tileReveal 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+.animate-die-slam     { animation: dieSlam 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-outcome      { animation: outcomeReveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-sub-reveal   { animation: subReveal 0.4s ease-out 0.25s forwards; opacity: 0; }
+.animate-crit-flash   { animation: critFlash 0.8s ease-out forwards; }
+.animate-clock-glow   { animation: clockCompletePulse 1.8s ease-in-out infinite; }
+.animate-fab-bob      { animation: fabBob 3s ease-in-out infinite; }
+
+/* ── Shimmer Card ────────────────────────────────────────────────────────── */
+/* Add .shimmer-card to any card element to get a light sweep on hover */
+.shimmer-card { position: relative; overflow: hidden; }
+.shimmer-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.07) 50%,
+    transparent 100%
+  );
+  transform: translateX(-120%) skewX(-18deg);
+  pointer-events: none;
+}
+.shimmer-card:hover::after {
+  animation: shimmerSweep 0.65s ease-out forwards;
+}
+
+/* Light mode shimmer is more visible */
+[data-theme="light"] .shimmer-card::after {
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 100%
+  );
+}
+
+/* ── Die Glow Transitions ────────────────────────────────────────────────── */
+.die-face {
+  transition: box-shadow 0.4s ease, border-color 0.4s ease, background-color 0.4s ease;
+}
+
+/* ── Roll Button ─────────────────────────────────────────────────────────── */
+.roll-btn {
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease, transform 0.15s ease;
+}
+.roll-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.15) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.roll-btn:not(:disabled):hover::before { opacity: 1; }
+.roll-btn:not(:disabled):hover {
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.15), 0 8px 32px rgba(0,0,0,0.4);
+}
+.roll-btn-bargain:not(:disabled):hover {
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.25), 0 8px 32px rgba(239,68,68,0.3);
+}
+.roll-btn:active:not(:disabled) { transform: scale(0.97); }
+
+/* ── Character Card ──────────────────────────────────────────────────────── */
+.char-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s ease,
+              border-color 0.2s ease;
+}
+.char-card:hover {
+  transform: translateY(-3px) scale(1.005);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.char-card:active { transform: translateY(0) scale(0.985); }
+
+/* ── Stat Tracker Dot ────────────────────────────────────────────────────── */
+.tracker-dot {
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tracker-dot:hover { transform: scale(1.3); }
+
+/* ── Clock SVG Path Transition ───────────────────────────────────────────── */
+.clock-path {
+  transition: fill 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.35s ease;
+}
+
+/* ── Section header accent ───────────────────────────────────────────────── */
+.section-accent {
+  position: relative;
+}
+.section-accent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 70%;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(to bottom, #ef4444, #991b1b);
+}
+
+/* ── Glowing input focus ─────────────────────────────────────────────────── */
+.glow-input:focus {
+  box-shadow: 0 0 0 1px rgba(239,68,68,0.4), 0 0 12px rgba(239,68,68,0.1);
+  border-color: rgba(239,68,68,0.6) !important;
+  outline: none;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spring-in, .animate-tile-in, .animate-die-slam,
+  .animate-outcome, .animate-sub-reveal, .animate-crit-flash,
+  .animate-clock-glow, .animate-fab-bob,
+  .shimmer-card::after, .char-card, .die-face {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

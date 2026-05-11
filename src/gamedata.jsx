@@ -7,9 +7,9 @@ export const srcLabel = s => SOURCE_LABELS[s] || s;
 
 export function accentColor(src = "") {
   const s = src.toLowerCase();
-  if (s.includes("deep cut")) return { bar:"#991b1b", title:"#fecaca", badge:"rgba(127,29,29,0.7)", badgeTxt:"#fca5a5", dot:"#ef4444" };
-  if (s.includes("b68") || s.includes("68")) return { bar:"#1d4ed8", title:"#bfdbfe", badge:"rgba(30,58,138,0.7)", badgeTxt:"#93c5fd", dot:"#3b82f6" };
-  return                             { bar:"#404040", title:"#f5f5f5", badge:"rgba(38,38,38,0.9)",  badgeTxt:"#a3a3a3", dot:"#737373" };
+  if (s.includes("deep cut")) return { bar:"#991b1b", title:"var(--rule-title-dc)", badge:"rgba(127,29,29,0.7)", badgeTxt:"#fca5a5", dot:"#ef4444" };
+  if (s.includes("b68") || s.includes("68")) return { bar:"#1d4ed8", title:"var(--rule-title-b68)", badge:"rgba(30,58,138,0.7)", badgeTxt:"#93c5fd", dot:"#3b82f6" };
+  return                             { bar:"#404040", title:"var(--rule-title-bitd)", badge:"rgba(38,38,38,0.9)",  badgeTxt:"#a3a3a3", dot:"#737373" };
 }
 
 export const NAV = [
